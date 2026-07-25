@@ -58,7 +58,8 @@ have to watch the camera feed. Nothing is sent until you configure a channel.
 
 | Trigger | When it fires |
 | --- | --- |
-| Confirmed print failure | A camera reports `needs_attention` for `CONFIRMATION_STREAK` frames in a row (default 3). One bad frame never alerts. |
+| Any visible problem | The first frame a camera reports a warning, a failure, or an unreadable view. Sent immediately, without waiting for confirmation. |
+| Confirmed print failure | A camera reports `needs_attention` for `CONFIRMATION_STREAK` frames in a row (default 3). This is the louder alert, and the one that triggers auto-pause. |
 | Analysis failure | Groq rejects the API key, rate-limits, times out, or is down, so monitoring has effectively stopped. |
 | Unreadable model output | The model returned text that was not valid JSON after retrying. |
 | Auto-pause failure | A confirmed failure happened, but the configured printer driver could not pause the machine. |
@@ -72,11 +73,29 @@ Everything except confirmed failures can be turned off with
 `DISCORD_NOTIFY_ERRORS=false`, and recovery messages with
 `DISCORD_NOTIFY_RECOVERY=false`.
 
-Repeats of the same alert are suppressed for `DISCORD_ERROR_COOLDOWN_MS`
-(default 5 minutes) and `DISCORD_FAILURE_COOLDOWN_MS` (default 2 minutes), keyed
-by camera and failure type, so a stuck camera cannot send one message per frame.
-The next message that does go out reports how many were suppressed, so nothing
-is silently dropped.
+### How much gets posted
+
+`DISCORD_ALERT_LEVEL` controls the volume:
+
+| Level | Behaviour |
+| --- | --- |
+| `warnings` | Default. Every distinct problem the moment it is seen, plus the confirmed alert once the streak agrees. |
+| `confirmed` | Only confirmed failures. Quietest, but a fault that flickers never reaches three frames in a row and is never reported at all. |
+| `all` | Every analysed frame, including clean ones. Debugging only — this posts continuously while monitoring runs. |
+
+A message is sent when a camera's problem *changes*, not once per frame, so a
+stuck camera reports once rather than every few seconds. If the same problem is
+still there after `DISCORD_REPEAT_MS` (default 10 minutes) it is repeated, so a
+fault left running overnight keeps reminding you.
+
+Discord allows roughly 30 messages per minute per webhook. Sends are queued and
+serialized, and a 429 is retried after the delay Discord asks for, so bursts are
+slowed rather than lost. If a flickering fault still posts more often than you
+want, set `DISCORD_WARNING_COOLDOWN_MS` to put a floor between warnings.
+
+Beyond that, repeats are suppressed for `DISCORD_ERROR_COOLDOWN_MS` (default 1
+minute). The next message that does go out reports how many were suppressed, so
+nothing is silently dropped.
 
 ### Setting up Discord
 

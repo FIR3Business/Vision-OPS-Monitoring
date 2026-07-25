@@ -8,10 +8,22 @@
 
 const COLORS = {
   failure: 0xe5484d,
-  error: 0xf5a524,
+  warning: 0xf5a524,
+  error: 0xf76808,
   recovery: 0x30a46c,
   info: 0x3b82f6,
 };
+
+// How much gets posted:
+//   confirmed - only a failure confirmed by CONFIRMATION_STREAK frames in a row
+//   warnings  - every distinct problem state, the moment it is seen (default)
+//   all       - every analysis result, including clean frames (debugging only)
+export function alertLevel() {
+  const raw = String(process.env.DISCORD_ALERT_LEVEL ?? "warnings").trim().toLowerCase();
+  if (["confirmed", "confirmed_only", "failures"].includes(raw)) return "confirmed";
+  if (["all", "everything", "verbose"].includes(raw)) return "all";
+  return "warnings";
+}
 
 const WEBHOOK_PATTERN =
   /^https:\/\/(?:canary\.|ptb\.)?discord(?:app)?\.com\/api\/(?:v\d+\/)?webhooks\/\d+\/[\w-]+$/;
@@ -56,8 +68,12 @@ export function describeNotifications() {
     notifyRecovery: envFlag("DISCORD_NOTIFY_RECOVERY", true),
     attachSnapshots: envFlag("DISCORD_ATTACH_SNAPSHOT", true),
     mention: String(process.env.DISCORD_MENTION ?? "").trim(),
-    errorCooldownMs: envNumber("DISCORD_ERROR_COOLDOWN_MS", 300_000),
-    failureCooldownMs: envNumber("DISCORD_FAILURE_COOLDOWN_MS", 120_000),
+    alertLevel: alertLevel(),
+    // Repeats are held back by state-change deduplication in the server rather
+    // than by long cooldowns, so these only stop genuine floods.
+    errorCooldownMs: envNumber("DISCORD_ERROR_COOLDOWN_MS", 60_000),
+    failureCooldownMs: envNumber("DISCORD_FAILURE_COOLDOWN_MS", 0),
+    warningCooldownMs: envNumber("DISCORD_WARNING_COOLDOWN_MS", 0),
   };
 }
 
@@ -301,6 +317,68 @@ export function notifyFailure({ cameraLabel, cameraId, result, snapshotDataUrl }
     attachment,
     cooldownKey: `failure:${cameraId}:${result?.failure_type}`,
     cooldownMs: settings.failureCooldownMs,
+  });
+}
+
+// Fired the moment a problem is visible, without waiting for the confirmation
+// streak. The streak still governs the louder "confirmed" alert and the printer
+// auto-pause; this exists so nothing goes unreported in the meantime.
+export function notifyWarning({ cameraLabel, cameraId, result, snapshotDataUrl }) {
+  const settings = describeNotifications();
+  const clean = result?.failure_type && result.failure_type !== "none";
+  const label = clean ? titleCase(result.failure_type) : titleCase(result?.status || "issue");
+  const attachment =
+    settings.attachSnapshots && snapshotDataUrl
+      ? dataUrlToAttachment(snapshotDataUrl, "frame")
+      : null;
+
+  const embed = {
+    title: `⚠️ ${label} — ${truncate(cameraLabel, 100)}`,
+    description: truncate(result?.reason || result?.machine_status_reason, 2000),
+    color: COLORS.warning,
+    timestamp: new Date().toISOString(),
+    fields: [
+      field("Status", titleCase(result?.status)),
+      field("Machine", titleCase(result?.machine_status)),
+      field("Severity", `${result?.severity ?? 0}/10`),
+      field("Confidence", percent(result?.confidence)),
+      field(
+        "Confirmation",
+        result?.confirmation_target
+          ? `${result?.confirmation_streak ?? 0} of ${result.confirmation_target} frames`
+          : "",
+      ),
+      field("Evidence", result?.evidence, false),
+      field("Next step", result?.next_step, false),
+    ].filter(Boolean),
+    footer: { text: "Vision OPS • not yet confirmed" },
+  };
+  if (attachment) embed.image = { url: `attachment://${attachment.filename}` };
+
+  return send({
+    embed,
+    attachment,
+    cooldownKey: `warning:${cameraId}`,
+    cooldownMs: settings.warningCooldownMs,
+  });
+}
+
+// Only used at DISCORD_ALERT_LEVEL=all, where every analysed frame is posted.
+export function notifyRoutine({ cameraLabel, cameraId, result }) {
+  return send({
+    embed: {
+      title: `🟢 ${titleCase(result?.machine_status)} — ${truncate(cameraLabel, 100)}`,
+      description: truncate(result?.machine_status_reason, 2000),
+      color: COLORS.recovery,
+      timestamp: new Date().toISOString(),
+      fields: [
+        field("Status", titleCase(result?.status)),
+        field("Confidence", percent(result?.status_confidence)),
+      ].filter(Boolean),
+      footer: { text: "Vision OPS • routine update" },
+    },
+    cooldownKey: `routine:${cameraId}`,
+    cooldownMs: 0,
   });
 }
 

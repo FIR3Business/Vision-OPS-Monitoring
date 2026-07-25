@@ -5,6 +5,7 @@ import express from "express";
 import Groq from "groq-sdk";
 import { WebSocketServer } from "ws";
 import {
+alertLevel,
 describeNotifications,
 flush as flushNotifications,
 isValidWebhookUrl,
@@ -12,7 +13,9 @@ notifyError,
 notifyFailure,
 notifyInfo,
 notifyRecovery,
+notifyRoutine,
 notifyTest,
+notifyWarning,
 } from "./notifications.mjs";
 const app = express();
 const port = Number(process.env.PORT || 3001);
@@ -588,6 +591,36 @@ newly_confirmed: state.confirmed && !wasConfirmed,
 newly_recovered: wasConfirmed && !state.confirmed,
 };
 }
+// Warnings are posted the first time a given problem state is seen on a camera,
+// then held back until the state changes or the problem has persisted for
+// DISCORD_REPEAT_MS. Without this, a stuck camera would post one message per
+// analysed frame and hit Discord's per-webhook rate limit within a minute.
+const REPEAT_ALERT_MS = Number(process.env.DISCORD_REPEAT_MS || 600_000);
+const cameraAlertState = new Map();
+function problemSignature(result) {
+return `${result.status}:${result.failure_type}:${result.machine_status}`;
+}
+function shouldAlertProblem(cameraId, result) {
+const signature = problemSignature(result);
+const previous = cameraAlertState.get(cameraId);
+const now = Date.now();
+if (
+previous &&
+previous.signature === signature &&
+now - previous.lastAlertAt < REPEAT_ALERT_MS
+) {
+return false;
+}
+cameraAlertState.set(cameraId, { signature, lastAlertAt: now });
+return true;
+}
+function markAlerted(cameraId, result) {
+cameraAlertState.set(cameraId, {
+signature: problemSignature(result),
+lastAlertAt: Date.now(),
+});
+}
+
 let wss = null;
 function broadcast(message) {
 if (!wss) return;
@@ -898,9 +931,35 @@ key: `pause:${cameraId}`,
 }
 });
 broadcast({ type: "failure_confirmed", cameraId, cameraLabel, result: payload });
+markAlerted(cameraId, normalized);
 } else if (confirmation.newly_recovered) {
 console.log(`"${cameraLabel}" recovered: ${normalized.machine_status}`);
+cameraAlertState.delete(cameraId);
 notifyRecovery({ cameraId, cameraLabel, result: payload });
+} else if (
+normalized.machine_status === "needs_attention" &&
+alertLevel() !== "confirmed" &&
+shouldAlertProblem(cameraId, normalized)
+) {
+// Anything visibly wrong is reported immediately. The confirmation streak
+// still gates the louder alert and the auto-pause, but it no longer decides
+// whether you hear about the problem at all — a fault that flickers never
+// reaches three in a row and used to go completely unreported.
+console.log(
+`Warning on "${cameraLabel}": ${normalized.failure_type} ` +
+`(${confirmation.confirmation_streak}/${confirmation.confirmation_target})`,
+);
+notifyWarning({
+cameraId,
+cameraLabel,
+result: payload,
+snapshotDataUrl: currentImageDataUrl,
+});
+} else if (normalized.machine_status !== "needs_attention") {
+cameraAlertState.delete(cameraId);
+if (alertLevel() === "all") {
+notifyRoutine({ cameraId, cameraLabel, result: payload });
+}
 }
 } catch (error) {
 const failedCameraLabel = clean(request.body?.cameraLabel, 100) || "unknown camera";

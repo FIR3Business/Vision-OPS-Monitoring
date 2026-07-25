@@ -267,6 +267,24 @@ box-shadow: 2px 2px 0 #0b0a24;
 [data-theme="arcade"] :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 /* Status colours carry meaning here, so they get the neon treatment and a
    glow rather than being flattened into the palette. */
+/* Cursor trail canvas. Only the arcade theme uses it, and never on a narrow
+   screen (no hover to trail from) or when reduced motion is asked for. */
+#cursorTrail {
+position: fixed;
+inset: 0;
+width: 100%;
+height: 100%;
+pointer-events: none;
+z-index: 9999;
+display: none;
+}
+[data-theme="arcade"] #cursorTrail { display: block; }
+@media (max-width: 767px) {
+[data-theme="arcade"] #cursorTrail { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+[data-theme="arcade"] #cursorTrail { display: none; }
+}
 [data-theme="arcade"] .machine-status-pill { border: 2px solid currentColor; box-shadow: 3px 3px 0 #0b0a24; }
 [data-theme="arcade"] .machine-status-pill.printing { text-shadow: 0 0 8px var(--normal); }
 [data-theme="arcade"] .machine-status-pill.needs_attention { text-shadow: 0 0 8px var(--failure); }
@@ -1470,6 +1488,7 @@ text-align: center;
 </style>
 </head>
 <body>
+<canvas id="cursorTrail" aria-hidden="true"></canvas>
 <div id="setupOverlay" class="setup-overlay hidden">
 <div class="setup-card">
 <img class="setup-logo" src="assets/vision-ops-mark.png" alt="Vision OPS logo" />
@@ -3510,6 +3529,104 @@ renderMonitors();
 setBeacon("standby");
 connectLiveSocket();
 resumeSessionIfAvailable();
+// Cursor trail: spinning pixel sparkles that fall, shrink and fade behind the
+// pointer. Sparkles are spaced evenly along the path travelled since the last
+// event, so a fast flick leaves a continuous trail rather than two dots.
+(function initCursorTrail() {
+const canvas = document.getElementById("cursorTrail");
+if (!canvas) return;
+const context = canvas.getContext("2d");
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const COLORS = [
+"rgba(255, 255, 255, ",
+"rgba(20, 20, 25, ",
+"rgba(244, 63, 94, ",
+"rgba(225, 29, 72, ",
+];
+const MAX_AGE = 35;
+const SPACING = 20;
+// A flick across a wide screen would otherwise spawn hundreds of sparkles
+// from a single event.
+const MAX_PER_EVENT = 40;
+let particles = [];
+let lastX = null;
+let lastY = null;
+let frame = 0;
+let animation = null;
+
+function resizeCanvas() {
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+}
+function trailEnabled() {
+return (
+document.documentElement.getAttribute("data-theme") === "arcade" &&
+!reducedMotion.matches &&
+window.innerWidth >= 768
+);
+}
+function spawn(x, y) {
+particles.push({
+x,
+y,
+age: 0,
+colorIndex: Math.floor(Math.random() * COLORS.length),
+});
+}
+function draw() {
+context.clearRect(0, 0, canvas.width, canvas.height);
+frame += 1;
+for (const particle of particles) particle.age += 1;
+particles = particles.filter((particle) => particle.age < MAX_AGE);
+for (const particle of particles) {
+const life = 1 - particle.age / MAX_AGE;
+const size = Math.floor(12 * life);
+context.save();
+context.translate(particle.x, particle.y + particle.age * 0.5);
+context.rotate(((particle.age * 5 + frame * 2) * Math.PI) / 180);
+context.fillStyle = COLORS[particle.colorIndex] + life + ")";
+context.fillRect(-size / 2, -size / 6, size, size / 3);
+context.fillRect(-size / 6, -size / 2, size / 3, size);
+context.restore();
+}
+// Stop the loop once the last sparkle dies. This machine is also running
+// camera capture and analysis, so an idle animation frame every 16ms is
+// not worth spending.
+animation = particles.length ? requestAnimationFrame(draw) : null;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+window.addEventListener(
+"mousemove",
+(event) => {
+if (!trailEnabled()) {
+particles = [];
+lastX = null;
+lastY = null;
+return;
+}
+const x = event.clientX + 12;
+const y = event.clientY + 12;
+if (lastX === null || lastY === null) {
+spawn(x, y);
+} else {
+const deltaX = x - lastX;
+const deltaY = y - lastY;
+const steps = Math.min(
+MAX_PER_EVENT,
+Math.max(1, Math.floor(Math.hypot(deltaX, deltaY) / SPACING)),
+);
+for (let step = 1; step <= steps; step++) {
+spawn(lastX + (deltaX * step) / steps, lastY + (deltaY * step) / steps);
+}
+}
+lastX = x;
+lastY = y;
+if (!animation) animation = requestAnimationFrame(draw);
+},
+{ passive: true },
+);
+})();
 </script>
 </body>
 </html>

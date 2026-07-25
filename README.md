@@ -14,7 +14,7 @@ Additionally, Vision OPS is designed so it is able to monitor loaded filament, p
 
 ----------------------------------------------------------------
 How to use Vision OPS?
-1. Download all the files from the MAIN branch.
+1. In your terminal type git clone https://github.com/FIR3Business/Vision-OPS-Monitoring
 2. PLEASE ENTER YOUR API KEY
 To get your api key: 
 a) Go to this website: https://console.groq.com/keys

@@ -793,6 +793,12 @@ inset: 0;
 width: 100%;
 height: 100%;
 pointer-events: none;
+opacity: 1;
+transition: opacity 500ms ease-out;
+}
+.detection-overlay.faded { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+.detection-overlay { transition: none; }
 }
 .controls {
 display: flex;
@@ -1773,6 +1779,12 @@ let analyzing = false;
 let calibrationImage = null;
 let dragStart = null;
 let currentDetection = null;
+// How long a detection box stays on the live feed before fading away, and how
+// long the fade itself takes.
+const DETECTION_VISIBLE_MS = 5000;
+const DETECTION_FADE_MS = 500;
+let detectionFadeTimer = null;
+let detectionClearTimer = null;
 let liveSocket = null;
 let confirmationTargetDefault = 3;
 let warehouseBlocks = loadWarehouseBlocks();
@@ -2652,10 +2664,32 @@ w: box.width * content.renderWidth,
 h: box.height * content.renderHeight,
 }, label, color);
 }
+function cancelDetectionFade() {
+clearTimeout(detectionFadeTimer);
+clearTimeout(detectionClearTimer);
+detectionFadeTimer = null;
+detectionClearTimer = null;
+elements.detectionOverlay.classList.remove("faded");
+}
 function setLiveDetection(box, label, color) {
+// A new detection restarts the countdown, so a box never disappears while
+// the problem it marks is still being reported.
+cancelDetectionFade();
 currentDetection = boxIsValid(box) ? { box, label, color } : null;
 resizeDetectionOverlay();
 redrawLiveDetection();
+if (!currentDetection) return;
+// The box marks a moment in the feed rather than a lasting state, so it is
+// retired after a few seconds instead of sitting over the live view. The
+// Flagged Region panel keeps the annotated still for as long as it is needed.
+detectionFadeTimer = setTimeout(() => {
+elements.detectionOverlay.classList.add("faded");
+detectionClearTimer = setTimeout(() => {
+currentDetection = null;
+redrawLiveDetection();
+elements.detectionOverlay.classList.remove("faded");
+}, DETECTION_FADE_MS);
+}, DETECTION_VISIBLE_MS);
 }
 function updateConfirmationStatus(streak = 0, target = confirmationTargetDefault, confirmed = false) {
 if (target) confirmationTargetDefault = target;

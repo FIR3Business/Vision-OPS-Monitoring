@@ -26,21 +26,22 @@ d) Ctrl/CMD+S to save the .env file
    
    <img width="860" height="189" alt="image" src="https://github.com/user-attachments/assets/42031c57-2f85-497b-b9fe-3a5b4d4791ef" />
 
-5. Type "cmd" to enter the terminal
+4. Type "cmd" to enter the terminal
    
    <img width="592" height="148" alt="image" src="https://github.com/user-attachments/assets/a63fcaad-026a-4deb-839f-7df78c66c8a3" />
    
    This should pop up:
    <img width="862" height="468" alt="image" src="https://github.com/user-attachments/assets/6b90d429-9c52-4650-bb14-fd2b4c8e6ea7" />
 
-7. Type "npm install"
+5. Type "npm install"
+   
    <img width="500" height="252" alt="image" src="https://github.com/user-attachments/assets/3e11d30d-4c53-45b4-9d17-620cca3736ca" />
 
-8. Type "cd VisionOPS_4"
+6. Type "cd VisionOPS_4"
    
    <img width="628" height="158" alt="image" src="https://github.com/user-attachments/assets/0383243a-4e8d-45d1-951c-76f7e44be302" />
    
-10. Type "npm start" as seen above
+7. Type "npm start" as seen above
 
 
 

@@ -122,22 +122,27 @@ color-scheme: dark;
 --tint-1: rgba(255, 255, 255, 0.05);
 --tint-2: rgba(255, 255, 255, 0.09);
 --tint-hover: rgba(34, 211, 238, 0.14);
---border: rgba(34, 211, 238, 0.34);
---border-strong: rgba(34, 211, 238, 0.7);
---text: #f2f4ff;
---text-secondary: #cdd2ff;
---muted: #9aa0d8;
+/* Sampled from the reference: soft indigo edges, no cyan anywhere. */
+--border: rgba(167, 139, 250, 0.26);
+--border-strong: rgba(192, 132, 252, 0.5);
+--text: #c5c6c7;
+--text-secondary: #d8d9db;
+--muted: #8f93a8;
 --cyan: #22d3ee;
 --blue: #38bdf8;
 --purple: #c084fc;
---accent: #e879f9;
---accent-strong: #f0abfc;
---accent-soft: rgba(232, 121, 249, 0.16);
+/* Fuchsia drives the controls so that crimson can stay reserved for failure —
+   both are the site's own colours, but a red button next to a red alarm would
+   cost the alarm its meaning. */
+--accent: #d946ef;
+--accent-strong: #e879f9;
+--accent-soft: rgba(217, 70, 239, 0.16);
 --focus-ring: #fde047;
 --normal: #34d399;
 --warning: #fde047;
---failure: #fb7185;
---unclear: #9aa0d8;
+--failure: #f43f5e;
+--unclear: #8f93a8;
+--pixel-red: #e11d48;
 /* Pixel art has no rounded corners. */
 --radius-sm: 0px;
 --radius-md: 0px;
@@ -154,6 +159,28 @@ font-size: 1.16rem;
 letter-spacing: 0.01em;
 background:
 linear-gradient(#181c3c 0%, #292850 70%, #3e3860 100%) fixed;
+}
+/* Moon low on the right and a band of pixel clouds along the bottom, the two
+   landmarks that give the reference its skyline. Drawn with gradients so no
+   image assets are borrowed. */
+[data-theme="arcade"] body::after {
+content: "";
+position: fixed;
+inset: 0;
+z-index: -1;
+pointer-events: none;
+background-image:
+radial-gradient(circle 150px at 88% 78%, rgba(228, 226, 255, 0.2), rgba(228, 226, 255, 0.08) 58%, transparent 70%),
+radial-gradient(circle 70px at 8% 97%, #453d7a 70%, transparent 72%),
+radial-gradient(circle 100px at 24% 100%, #4a4184 70%, transparent 72%),
+radial-gradient(circle 78px at 40% 97%, #3f3872 70%, transparent 72%),
+radial-gradient(circle 120px at 58% 101%, #4a4184 70%, transparent 72%),
+radial-gradient(circle 86px at 76% 98%, #3f3872 70%, transparent 72%),
+radial-gradient(circle 92px at 92% 101%, #453d7a 70%, transparent 72%),
+linear-gradient(transparent 88%, #4a4184 97%);
+}
+@media (max-width: 900px) {
+[data-theme="arcade"] body::after { display: none; }
 }
 /* A starfield built from gradients rather than image assets, drifting slowly
    at three speeds so it reads as parallax. */
@@ -191,13 +218,20 @@ font-family: "Press Start 2P", "VT323", monospace;
 letter-spacing: 0;
 text-transform: none;
 }
+/* The reference's signature: white pixel type with a hard crimson offset. */
 [data-theme="arcade"] .brand-name {
 font-size: 1.05rem;
 line-height: 1.5;
-text-shadow: 3px 3px 0 #e11d48;
+color: #ffffff;
+text-shadow: 3px 3px 0 var(--pixel-red);
 }
-[data-theme="arcade"] .brand-subtitle { font-size: 0.95rem; }
-[data-theme="arcade"] h1 { font-size: 1.15rem; line-height: 1.6; text-shadow: 3px 3px 0 #0284c7; }
+[data-theme="arcade"] .brand-subtitle { font-size: 0.95rem; color: var(--purple); }
+[data-theme="arcade"] h1 {
+font-size: 1.15rem;
+line-height: 1.6;
+color: #ffffff;
+text-shadow: 3px 3px 0 var(--pixel-red);
+}
 [data-theme="arcade"] h2 { font-size: 0.95rem; line-height: 1.6; }
 [data-theme="arcade"] h3 { font-size: 0.8rem; line-height: 1.6; }
 [data-theme="arcade"] .nav-button,

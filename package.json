@@ -1,0 +1,17 @@
+{
+  "name": "vision-ops",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vision OPS camera monitoring prototype for fabrication machines",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "groq-sdk": "^1.3.0",
+    "ws": "^8.21.0"
+  }
+}

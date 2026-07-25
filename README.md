@@ -47,6 +47,3 @@ d) Ctrl/CMD+S to save the .env file
 
    <img width="803" height="56" alt="image" src="https://github.com/user-attachments/assets/585e7262-8ec1-4169-ad27-5afb8e9f3bf3" />
 
-9. 
-
-

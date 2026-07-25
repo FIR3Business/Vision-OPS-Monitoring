@@ -1,0 +1,3311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vision OPS</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="assets/favicon-180.png" />
+<script>
+(function () {
+try {
+var theme = localStorage.getItem("visionOpsTheme");
+if (theme && theme !== "dark") document.documentElement.setAttribute("data-theme", theme);
+} catch (error) {}
+})();
+</script>
+<style>
+* { box-sizing: border-box; }
+:root {
+color-scheme: dark;
+--bg: #0a0b0d;
+--panel: rgba(19, 20, 23, 0.9);
+--panel-dark: rgba(14, 15, 17, 0.95);
+--surface-1: rgba(13, 14, 16, 0.88);
+--surface-2: rgba(13, 14, 15, 0.7);
+--tint-1: rgba(255, 255, 255, 0.03);
+--tint-2: rgba(255, 255, 255, 0.05);
+--tint-hover: rgba(148, 163, 184, 0.06);
+--border: rgba(255, 255, 255, 0.08);
+--border-strong: rgba(255, 255, 255, 0.16);
+--text: #eceef1;
+--text-secondary: #cdd6e4;
+--muted: #8a8f98;
+--cyan: #12daf4;
+--blue: #347cff;
+--purple: #9d7bf0;
+--accent: #ff6a39;
+--accent-strong: #ff5c26;
+--accent-soft: rgba(255, 106, 57, 0.12);
+--focus-ring: #ff8f66;
+--normal: #4bc98a;
+--warning: #e0a339;
+--failure: #e5566b;
+--unclear: #8a8f98;
+--header-height: 76px;
+--radius-sm: 4px;
+--radius-md: 6px;
+--radius-lg: 8px;
+--font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
+--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+--dur-fast: 120ms;
+--dur-base: 180ms;
+--dur-slow: 260ms;
+--grid-line: rgba(255, 255, 255, 0.035);
+--grid-glow: rgba(255, 106, 57, 0.06);
+}
+:root[data-theme="light"] {
+color-scheme: light;
+--bg: #f4f5f7;
+--panel: rgba(255, 255, 255, 0.92);
+--panel-dark: rgba(255, 255, 255, 0.98);
+--surface-1: rgba(255, 255, 255, 0.8);
+--surface-2: rgba(255, 255, 255, 0.55);
+--tint-1: rgba(0, 0, 0, 0.03);
+--tint-2: rgba(0, 0, 0, 0.045);
+--tint-hover: rgba(15, 23, 42, 0.05);
+--border: rgba(15, 23, 42, 0.1);
+--border-strong: rgba(15, 23, 42, 0.18);
+--text: #191b1f;
+--text-secondary: #3d4250;
+--muted: #666d7a;
+--accent-soft: rgba(255, 106, 57, 0.1);
+--grid-line: rgba(15, 23, 42, 0.05);
+--grid-glow: rgba(255, 106, 57, 0.08);
+}
+html { scroll-behavior: smooth; }
+body {
+margin: 0;
+min-height: 100vh;
+padding-top: var(--header-height);
+overflow-x: hidden;
+color: var(--text);
+font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+font-variant-numeric: tabular-nums;
+background: var(--bg);
+transition: background var(--dur-slow) var(--ease-out), color var(--dur-slow) var(--ease-out);
+}
+body::before {
+content: "";
+position: fixed;
+inset: 0;
+z-index: -1;
+pointer-events: none;
+background-image:
+linear-gradient(var(--grid-line) 1px, transparent 1px),
+linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+radial-gradient(ellipse 900px 480px at 50% -10%, var(--grid-glow), transparent 60%);
+background-size: 32px 32px, 32px 32px, 100% 100%;
+background-position: -1px -1px, -1px -1px, 0 0;
+mask-image: linear-gradient(rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.35) 70%, transparent);
+}
+:root[data-theme="hex"] body::before {
+opacity: 0.4;
+background-image:
+url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='69.282' viewBox='0 0 120 69.282'%3E%3Cpath d='M0 0H20L40 34.641H80L100 0H120M0 69.282H20L40 34.641M80 34.641L100 69.282H120' fill='none' stroke='%23ff6a39' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round' stroke-opacity='.6'/%3E%3C/svg%3E"),
+radial-gradient(ellipse 900px 480px at 50% -10%, var(--grid-glow), transparent 60%);
+background-size: 120px 69.282px, 100% 100%;
+background-position: center top, 0 0;
+}
+.mono, .data-value, code {
+font-family: var(--font-mono);
+font-variant-numeric: tabular-nums;
+}
+button, input, select { font: inherit; }
+button { border: 0; cursor: pointer; }
+.hidden { display: none !important; }
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible,
+summary:focus-visible {
+outline: 2px solid var(--focus-ring);
+outline-offset: 2px;
+border-radius: var(--radius-sm);
+}
+@media (prefers-reduced-motion: reduce) {
+*, *::before, *::after {
+animation-duration: 0.001ms !important;
+animation-iteration-count: 1 !important;
+transition-duration: 0.001ms !important;
+scroll-behavior: auto !important;
+}
+}
+.app-header {
+position: fixed;
+inset: 0 0 auto 0;
+z-index: 100;
+height: var(--header-height);
+display: grid;
+grid-template-columns: minmax(270px, 1fr) auto minmax(270px, 1fr);
+align-items: center;
+gap: 18px;
+padding: 8px 22px;
+border-bottom: 1px solid var(--border);
+background: var(--surface-1);
+box-shadow: 0 14px 50px rgba(0, 0, 0, 0.5);
+backdrop-filter: blur(18px);
+}
+.brand {
+display: flex;
+align-items: center;
+min-width: 0;
+gap: 12px;
+}
+.brand-mark {
+height: 46px;
+width: auto;
+flex: 0 0 auto;
+display: block;
+filter: drop-shadow(0 0 12px rgba(29, 153, 255, 0.35));
+}
+.brand-name {
+font-size: 23px;
+font-weight: 700;
+letter-spacing: 0.02em;
+line-height: 1;
+}
+.brand-subtitle {
+margin-top: 6px;
+color: var(--muted);
+font-size: 11px;
+}
+.top-nav {
+display: flex;
+gap: 2px;
+padding: 0;
+border: 1px solid var(--border);
+border-radius: var(--radius-sm);
+background: var(--surface-1);
+}
+.nav-button {
+position: relative;
+padding: 11px 20px 9px;
+border-radius: 0;
+color: var(--muted);
+background: transparent;
+cursor: pointer;
+font-family: var(--font-mono);
+font-size: 13px;
+font-weight: 600;
+letter-spacing: 0.04em;
+text-transform: uppercase;
+transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+}
+.nav-button::after {
+content: "";
+position: absolute;
+left: 10px;
+right: 10px;
+bottom: 0;
+height: 2px;
+background: var(--accent);
+transform: scaleX(0);
+transition: transform var(--dur-base) var(--ease-out);
+}
+.nav-button:hover:not(.active) {
+color: var(--text-secondary);
+background: var(--tint-hover);
+}
+.nav-button.active {
+color: var(--text);
+background: rgba(255, 106, 57, 0.08);
+}
+.nav-button.active::after {
+transform: scaleX(1);
+}
+.header-actions {
+display: flex;
+align-items: center;
+justify-content: flex-end;
+gap: 10px;
+}
+.theme-select {
+width: auto;
+min-height: 42px;
+padding: 8px 30px 8px 12px;
+color: var(--muted);
+background-color: var(--surface-1);
+background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+background-position: calc(100% - 16px) center, calc(100% - 11px) center;
+background-size: 5px 5px, 5px 5px;
+background-repeat: no-repeat;
+appearance: none;
+font-family: var(--font-mono);
+font-size: 12px;
+font-weight: 600;
+letter-spacing: 0.02em;
+text-transform: uppercase;
+cursor: pointer;
+}
+.theme-select:hover { color: var(--text-secondary); }
+.shell {
+width: min(1480px, calc(100% - 34px));
+margin: 22px auto 64px;
+}
+.panel {
+border: 1px solid var(--border);
+border-radius: var(--radius-lg);
+background: var(--panel);
+box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+.page-panel { padding: 22px; }
+.row-between {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 16px;
+flex-wrap: wrap;
+}
+.kicker {
+display: inline-flex;
+align-items: baseline;
+gap: 8px;
+color: var(--muted);
+font-family: var(--font-mono);
+font-size: 12px;
+font-weight: 600;
+letter-spacing: 0.06em;
+text-transform: uppercase;
+}
+.kicker-index {
+color: var(--accent);
+}
+.kicker-index::after {
+content: "/";
+margin-left: 8px;
+color: var(--border-strong);
+}
+h1, h2, h3 { margin-top: 0; }
+.page-title { margin: 5px 0 0; font-size: 30px; }
+.description, .help { color: var(--muted); line-height: 1.55; }
+.description { margin: 8px 0 0; }
+.count-pill, .type-pill, .machine-status-pill {
+display: inline-flex;
+align-items: center;
+gap: 7px;
+padding: 6px 11px;
+border: 1px solid var(--border-strong);
+border-radius: var(--radius-sm);
+color: var(--text-secondary);
+background: var(--tint-1);
+font-family: var(--font-mono);
+font-size: 12px;
+font-weight: 600;
+letter-spacing: 0.02em;
+text-transform: uppercase;
+transition: color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out);
+}
+.machine-status-pill.idle {
+color: #8fb4f5;
+border-color: rgba(94, 143, 255, 0.4);
+background: rgba(94, 143, 255, 0.08);
+}
+.machine-status-pill.printing {
+color: #7fd8ab;
+border-color: rgba(75, 201, 138, 0.4);
+background: rgba(75, 201, 138, 0.08);
+}
+.machine-status-pill.needs_attention {
+color: #ee9aa5;
+border-color: rgba(229, 86, 107, 0.4);
+background: rgba(229, 86, 107, 0.08);
+}
+.primary, .secondary, .ghost, .danger, .success {
+min-height: 42px;
+padding: 10px 15px;
+border-radius: var(--radius-sm);
+cursor: pointer;
+color: white;
+font-weight: 600;
+transition: transform var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+.primary {
+background: var(--accent-strong);
+}
+.secondary {
+color: var(--text);
+background: var(--tint-2);
+border: 1px solid var(--border-strong);
+}
+.ghost {
+color: var(--text-secondary);
+background: transparent;
+border: 1px solid var(--border);
+}
+.danger { background: #c8394b; }
+.success { background: #2f9e63; }
+@media (hover: hover) and (pointer: fine) {
+button:hover:not(:disabled) {
+transform: translateY(-1px);
+filter: brightness(1.09);
+}
+}
+button:active:not(:disabled) {
+transform: scale(0.97);
+filter: brightness(0.97);
+transition-duration: 60ms;
+}
+button:disabled {
+opacity: 0.42;
+cursor: not-allowed;
+}
+.is-loading {
+position: relative;
+color: transparent !important;
+pointer-events: none;
+}
+.is-loading::after {
+content: "";
+position: absolute;
+inset: 0;
+margin: auto;
+width: 16px;
+height: 16px;
+border: 2px solid rgba(255, 255, 255, 0.32);
+border-top-color: #fff;
+border-radius: 50%;
+animation: spin 700ms linear infinite;
+}
+@keyframes spin {
+to { transform: rotate(360deg); }
+}
+label {
+display: block;
+margin-bottom: 6px;
+color: var(--text-secondary);
+font-size: 13px;
+font-weight: 500;
+}
+input, select {
+width: 100%;
+min-height: 43px;
+padding: 10px 12px;
+border: 1px solid var(--border-strong);
+border-radius: var(--radius-md);
+outline: none;
+color: var(--text);
+background: var(--surface-1);
+transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+}
+input:focus, select:focus {
+border-color: rgba(33, 192, 255, 0.83);
+box-shadow: 0 0 0 3px rgba(18, 216, 244, 0.1);
+}
+.category-tabs {
+display: flex;
+gap: 1px;
+margin: 20px 0;
+padding: 0;
+overflow-x: auto;
+border: 1px solid var(--border);
+border-radius: var(--radius-md);
+background: var(--surface-2);
+}
+.category-tab {
+position: relative;
+flex: 1 0 auto;
+min-width: 165px;
+padding: 13px 16px 11px;
+border-radius: 0;
+color: var(--muted);
+background: transparent;
+cursor: pointer;
+font-family: var(--font-mono);
+font-size: 13px;
+font-weight: 600;
+letter-spacing: 0.03em;
+text-transform: uppercase;
+transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+}
+.category-tab + .category-tab {
+border-left: 1px solid var(--border);
+}
+.category-tab::after {
+content: "";
+position: absolute;
+left: 0;
+right: 0;
+bottom: 0;
+height: 2px;
+background: var(--accent);
+transform: scaleX(0);
+transition: transform var(--dur-base) var(--ease-out);
+}
+.category-tab:hover:not(.active) {
+color: var(--text-secondary);
+background: var(--tint-hover);
+}
+.category-tab.active {
+color: var(--text);
+background: rgba(255, 106, 57, 0.08);
+}
+.category-tab.active::after {
+transform: scaleX(1);
+}
+.warehouse-toolbar { margin: 20px 0 14px; }
+.warehouse-floor-wrap {
+position: relative;
+}
+.warehouse-floor {
+position: relative;
+min-height: 480px;
+overflow: hidden;
+border: 1px solid var(--border);
+border-radius: var(--radius-lg);
+background-color: var(--panel-dark);
+background-image:
+linear-gradient(var(--grid-line) 1px, transparent 1px),
+linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+background-size: 28px 28px;
+}
+.warehouse-hint {
+position: absolute;
+inset: 0;
+display: grid;
+place-items: center;
+padding: 40px;
+color: var(--muted);
+font-size: 14px;
+text-align: center;
+}
+.warehouse-block {
+position: absolute;
+display: flex;
+flex-direction: column;
+gap: 6px;
+min-width: 90px;
+min-height: 70px;
+padding: 10px;
+border: 1px solid var(--border-strong);
+border-radius: var(--radius-md);
+background: var(--surface-1);
+cursor: grab;
+touch-action: none;
+user-select: none;
+transition: box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+.warehouse-block.dragging {
+cursor: grabbing;
+z-index: 20;
+box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+.warehouse-block-name {
+overflow: hidden;
+font-size: 13px;
+font-weight: 600;
+white-space: nowrap;
+text-overflow: ellipsis;
+}
+.warehouse-block-status-text {
+color: var(--muted);
+font-size: 10px;
+letter-spacing: 0.04em;
+text-transform: uppercase;
+}
+.warehouse-block-select {
+width: 100%;
+min-height: 0;
+padding: 4px 6px;
+border: 1px solid var(--border);
+border-radius: var(--radius-sm);
+color: #eef1f6;
+background-color: rgba(0, 0, 0, 0.22);
+font-size: 11px;
+}
+.warehouse-block-remove {
+position: absolute;
+top: -8px;
+right: -8px;
+display: grid;
+place-items: center;
+width: 20px;
+height: 20px;
+padding: 0;
+border: 1px solid var(--border-strong);
+border-radius: 50%;
+color: var(--muted);
+background: var(--panel-dark);
+font-size: 13px;
+line-height: 1;
+opacity: 0;
+transition: opacity var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.warehouse-block:hover .warehouse-block-remove { opacity: 1; }
+.warehouse-block-remove:hover { color: var(--failure); border-color: var(--failure); }
+.warehouse-block-resize {
+position: absolute;
+right: 2px;
+bottom: 2px;
+width: 12px;
+height: 12px;
+border-right: 2px solid var(--border-strong);
+border-bottom: 2px solid var(--border-strong);
+cursor: nwse-resize;
+}
+.warehouse-block.status-empty { border-style: dashed; }
+.warehouse-block.status-idle { border-color: var(--normal); background: rgba(75, 201, 138, 0.14); }
+.warehouse-block.status-printing { border-color: var(--blue); background: rgba(52, 124, 255, 0.16); }
+.warehouse-block.status-pending { border-color: var(--warning); background: rgba(224, 163, 57, 0.14); }
+.warehouse-block.status-offline { border-color: var(--border-strong); background: var(--surface-2); }
+.warehouse-block.status-failure {
+border-color: var(--failure);
+background: rgba(229, 86, 107, 0.18);
+animation: warehouseAlert 1.4s var(--ease-in-out) infinite;
+}
+@keyframes warehouseAlert {
+0%, 100% { box-shadow: 0 0 0 0 rgba(229, 86, 107, 0.45); }
+50% { box-shadow: 0 0 0 6px rgba(229, 86, 107, 0); }
+}
+.warehouse-legend {
+display: flex;
+flex-wrap: wrap;
+gap: 16px;
+margin-top: 14px;
+}
+.warehouse-legend-item {
+display: inline-flex;
+align-items: center;
+gap: 7px;
+color: var(--muted);
+font-size: 12px;
+}
+.warehouse-legend-swatch {
+width: 10px;
+height: 10px;
+border-radius: 2px;
+border: 1px solid var(--border-strong);
+}
+.warehouse-legend-swatch.status-idle { border-color: var(--normal); background: rgba(75, 201, 138, 0.35); }
+.warehouse-legend-swatch.status-printing { border-color: var(--blue); background: rgba(52, 124, 255, 0.35); }
+.warehouse-legend-swatch.status-failure { border-color: var(--failure); background: rgba(229, 86, 107, 0.4); }
+.warehouse-legend-swatch.status-pending { border-color: var(--warning); background: rgba(224, 163, 57, 0.35); }
+.warehouse-legend-swatch.status-empty { border-style: dashed; }
+.camera-grid {
+display: grid;
+grid-template-columns: repeat(3, minmax(0, 1fr));
+gap: 16px;
+}
+.camera-card {
+display: flex;
+flex-direction: column;
+animation: cardEnter var(--dur-slow) var(--ease-out) both;
+transition: border-color var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+min-height: 310px;
+padding: 20px;
+overflow: hidden;
+border: 1px solid var(--border);
+border-radius: var(--radius-lg);
+background: var(--panel-dark);
+}
+@media (hover: hover) and (pointer: fine) {
+.camera-card:hover { border-color: var(--border-strong); }
+}
+.camera-head {
+display: flex;
+align-items: center;
+gap: 13px;
+}
+.camera-icon {
+display: grid;
+place-items: center;
+width: 44px;
+height: 44px;
+flex: 0 0 44px;
+border-radius: var(--radius-sm);
+color: var(--muted);
+background: var(--tint-2);
+box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.camera-card h3 { margin: 0; font-size: 18px; }
+.camera-original {
+margin: 4px 0 0;
+color: var(--muted);
+font-size: 13px;
+overflow-wrap: anywhere;
+}
+.available {
+display: flex;
+align-items: center;
+gap: 8px;
+margin: 17px 0 13px;
+color: var(--muted);
+}
+.dot {
+width: 8px;
+height: 8px;
+border-radius: 50%;
+background: var(--normal);
+box-shadow: 0 0 12px rgba(53, 212, 119, 0.72);
+}
+.card-status-row {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 8px;
+margin-bottom: 13px;
+}
+.camera-meta {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+margin-bottom: 15px;
+}
+.mini span {
+display: block;
+color: var(--muted);
+font-size: 11px;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+}
+.mini strong {
+display: block;
+margin-top: 4px;
+color: var(--text-secondary);
+font-family: var(--font-mono);
+font-size: 13px;
+overflow-wrap: anywhere;
+}
+.palette {
+display: flex;
+align-items: center;
+flex-wrap: wrap;
+gap: 8px;
+}
+.palette-empty { color: var(--muted); font-size: 13px; }
+.color-chip {
+display: inline-flex;
+align-items: center;
+gap: 8px;
+padding: 5px 9px 5px 6px;
+border: 1px solid var(--border-strong);
+border-radius: var(--radius-sm);
+color: var(--text-secondary);
+background: var(--surface-1);
+font-family: var(--font-mono);
+font-size: 12px;
+font-weight: 500;
+}
+.color-swatch {
+width: 12px;
+height: 12px;
+flex: 0 0 12px;
+border: 1px solid rgba(255, 255, 255, 0.3);
+border-radius: 2px;
+}
+.camera-actions {
+display: flex;
+flex-wrap: wrap;
+gap: 8px;
+margin-top: 12px;
+}
+.watch { flex: 1; min-width: 140px; }
+.card-history {
+margin-top: 12px;
+border: 1px solid var(--border);
+border-radius: var(--radius-md);
+overflow: hidden;
+background: var(--surface-1);
+}
+.card-history summary {
+display: flex;
+justify-content: space-between;
+gap: 10px;
+padding: 11px 12px;
+cursor: pointer;
+font-weight: 600;
+list-style: none;
+}
+.card-history summary::-webkit-details-marker { display: none; }
+.card-history-list {
+max-height: 230px;
+padding: 0 10px 10px;
+overflow-y: auto;
+}
+.mini-event {
+margin-top: 8px;
+padding: 9px;
+border: 1px solid var(--border);
+border-radius: var(--radius-sm);
+background: var(--surface-1);
+font-size: 12px;
+}
+.mini-event.failure { border-left: 4px solid var(--failure); }
+.mini-event.warning { border-left: 4px solid var(--warning); }
+.mini-event.normal { border-left: 4px solid var(--normal); }
+.mini-event.unclear { border-left: 4px solid var(--unclear); }
+.mini-event p { margin: 4px 0; color: var(--text-secondary); }
+.empty-state {
+display: grid;
+place-items: center;
+min-height: 330px;
+padding: 34px;
+text-align: center;
+border: 1px dashed var(--border-strong);
+border-radius: var(--radius-lg);
+background: var(--surface-2);
+}
+.monitor-header { padding: 18px 20px; margin-bottom: 16px; }
+.monitor-title { margin: 12px 0 4px; font-size: 27px; }
+.active-badges {
+display: flex;
+flex-wrap: wrap;
+gap: 8px;
+}
+.monitor-grid {
+display: grid;
+grid-template-columns: minmax(0, 1.7fr) minmax(330px, 0.9fr);
+gap: 18px;
+}
+.camera-panel, .status-panel, .calibration-panel, .reference-panel { padding: 20px; }
+video {
+display: block;
+width: 100%;
+min-height: 390px;
+max-height: 650px;
+object-fit: contain;
+border: 1px solid var(--border);
+border-radius: var(--radius-lg);
+background: #000;
+}
+.video-wrap {
+position: relative;
+}
+.corner-mark {
+position: absolute;
+width: 14px;
+height: 14px;
+border: 0 solid var(--accent);
+opacity: 0.7;
+pointer-events: none;
+}
+.corner-mark.tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.corner-mark.tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+.corner-mark.bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+.corner-mark.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+.detection-overlay {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+pointer-events: none;
+}
+.controls {
+display: flex;
+flex-wrap: wrap;
+gap: 9px;
+margin-top: 13px;
+}
+.auto-row {
+display: grid;
+grid-template-columns: 1fr 150px;
+gap: 9px;
+margin-top: 10px;
+}
+.message {
+min-height: 20px;
+margin: 13px 0 0;
+color: var(--text-secondary);
+font-weight: 500;
+}
+.status-explanation {
+margin-top: 12px;
+padding: 12px 14px;
+border: 1px solid var(--border);
+border-radius: var(--radius-md);
+color: var(--muted);
+background: var(--surface-2);
+font-size: 13px;
+line-height: 1.5;
+}
+.palette-panel {
+margin-top: 16px;
+padding: 15px;
+border: 1px solid var(--border);
+border-radius: var(--radius-lg);
+background: var(--surface-2);
+}
+.palette-panel h3 { margin-bottom: 10px; }
+.detection-snapshot {
+display: block;
+width: 100%;
+max-height: 260px;
+object-fit: contain;
+border-radius: var(--radius-md);
+background: #000;
+}
+#confirmationStatus.confirmed {
+border-color: var(--failure);
+color: var(--failure);
+}
+.toast {
+position: fixed;
+right: 22px;
+bottom: 22px;
+z-index: 300;
+max-width: 360px;
+padding: 14px 16px;
+border-radius: var(--radius-md);
+color: white;
+font-weight: 700;
+font-size: 14px;
+box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+opacity: 0;
+transform: translateY(12px);
+transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+.toast.visible { opacity: 1; transform: translateY(0); }
+.toast-failure { background: linear-gradient(135deg, #a8283c, var(--failure)); }
+.toast-warning { background: linear-gradient(135deg, #a06a1e, var(--warning)); color: #241a00; }
+.toast-normal { background: linear-gradient(135deg, #1f7a4c, var(--normal)); }
+.active-history {
+margin-top: 18px;
+border: 1px solid var(--border);
+border-radius: var(--radius-lg);
+overflow: hidden;
+background: var(--surface-1);
+}
+.active-history summary {
+display: flex;
+justify-content: space-between;
+padding: 14px 16px;
+cursor: pointer;
+font-weight: 700;
+list-style: none;
+}
+.active-history summary::-webkit-details-marker { display: none; }
+.history-toolbar {
+display: flex;
+gap: 8px;
+flex-wrap: wrap;
+padding: 0 14px 12px;
+}
+.history-list {
+max-height: 430px;
+padding: 0 13px 13px;
+overflow-y: auto;
+overscroll-behavior: contain;
+}
+.event {
+display: grid;
+grid-template-columns: 145px 1fr;
+gap: 13px;
+margin-bottom: 11px;
+padding: 12px;
+border: 1px solid var(--border);
+border-radius: var(--radius-md);
+background: var(--surface-1);
+content-visibility: auto;
+contain-intrinsic-size: 150px;
+}
+.event.failure { border-left: 5px solid var(--failure); }
+.event.warning { border-left: 5px solid var(--warning); }
+.event.normal { border-left: 5px solid var(--normal); }
+.event.unclear { border-left: 5px solid var(--unclear); }
+.event img {
+width: 145px;
+height: 98px;
+object-fit: cover;
+border-radius: var(--radius-sm);
+background: #000;
+}
+.event p { margin: 4px 0; color: var(--text-secondary); font-size: 13px; }
+.feedback {
+display: flex;
+gap: 7px;
+flex-wrap: wrap;
+margin-top: 8px;
+}
+.feedback button { min-height: 32px; padding: 6px 9px; font-size: 12px; }
+.beacon-wrap { text-align: center; }
+#beacon {
+width: 88px;
+height: 88px;
+margin: 8px auto 14px;
+border: 5px solid var(--panel-dark);
+border-radius: 50%;
+background: var(--accent);
+box-shadow: 0 0 16px -2px var(--accent), inset 0 0 10px rgba(0, 0, 0, 0.18);
+transition: background var(--dur-slow) ease, box-shadow var(--dur-slow) ease, transform var(--dur-slow) var(--ease-in-out);
+}
+#beacon.pulsing {
+animation: beaconPulse 1.1s var(--ease-in-out) infinite;
+}
+@keyframes beaconPulse {
+0%, 100% { transform: scale(1); }
+50% { transform: scale(1.05); }
+}
+#beaconLabel {
+margin-bottom: 18px;
+font-family: var(--font-mono);
+font-size: 21px;
+font-weight: 700;
+letter-spacing: 0.02em;
+text-transform: uppercase;
+}
+#resultCard {
+position: relative;
+padding: 18px;
+border: 2px solid #555;
+border-radius: var(--radius-lg);
+background: #242a35;
+color: #e8ecf5;
+transition: border-color var(--dur-slow) ease, background var(--dur-slow) ease;
+}
+#resultCard.normal { border-color: var(--normal); background: rgba(12, 61, 32, 0.84); }
+#resultCard.warning { border-color: var(--warning); background: rgba(66, 52, 15, 0.86); }
+#resultCard.failure { border-color: var(--failure); background: rgba(75, 19, 27, 0.88); }
+#resultCard.unclear { border-color: var(--unclear); background: rgba(39, 43, 50, 0.94); }
+#resultCard.analyzing { border-color: var(--purple); background: rgba(45, 26, 67, 0.92); }
+#resultStatus { margin: 0 0 12px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.02em; }
+.result-row {
+display: grid;
+grid-template-columns: 150px 1fr;
+gap: 9px;
+margin: 9px 0;
+font-size: 14px;
+}
+.result-label { color: #aab4c8; font-weight: 600; }
+.result-row > div + div {
+font-family: var(--font-mono);
+}
+.confidence-track {
+height: 10px;
+margin-top: 6px;
+overflow: hidden;
+border: 1px solid #586174;
+border-radius: 2px;
+background-color: #070a0f;
+background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 10%);
+}
+#confidenceBar, #statusConfidenceBar {
+width: 0%;
+height: 100%;
+background: var(--accent);
+transition: width 420ms var(--ease-out);
+}
+.lower-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 18px;
+margin-top: 18px;
+}
+#calibrationCanvas {
+display: none;
+width: 100%;
+max-height: 500px;
+border: 1px solid #5a6a87;
+border-radius: var(--radius-md);
+background: #000;
+cursor: crosshair;
+touch-action: none;
+}
+.calibration-placeholder {
+display: grid;
+place-items: center;
+min-height: 250px;
+padding: 24px;
+text-align: center;
+border: 1px dashed var(--border-strong);
+border-radius: var(--radius-md);
+color: var(--muted);
+background: var(--surface-2);
+}
+.reference-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 12px;
+}
+.reference-card {
+padding: 13px;
+border: 1px solid var(--border);
+border-radius: var(--radius-md);
+background: var(--surface-2);
+}
+.reference-card h3 { font-size: 15px; }
+.reference-preview, .reference-empty {
+width: 100%;
+aspect-ratio: 4 / 3;
+border: 1px solid var(--border);
+border-radius: var(--radius-sm);
+background: #020409;
+}
+.reference-preview { display: block; object-fit: contain; }
+.reference-empty {
+display: grid;
+place-items: center;
+padding: 12px;
+color: var(--muted);
+text-align: center;
+}
+.upload-box {
+margin-top: 10px;
+padding: 10px;
+border: 1px dashed var(--border);
+border-radius: var(--radius-sm);
+}
+.modal-background {
+position: fixed;
+inset: 0;
+z-index: 200;
+display: grid;
+place-items: center;
+padding: 18px;
+background: rgba(0, 0, 0, 0.72);
+backdrop-filter: blur(8px);
+animation: overlayIn var(--dur-base) var(--ease-out) both;
+}
+.modal-background.closing {
+animation: overlayOut 140ms ease-in both;
+}
+.modal {
+width: min(470px, 100%);
+padding: 22px;
+border: 1px solid var(--border-strong);
+border-radius: var(--radius-lg);
+background: var(--panel-dark);
+box-shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
+transform-origin: center;
+animation: modalIn var(--dur-slow) var(--ease-out) both;
+}
+.modal-background.closing .modal {
+animation: modalOut 140ms ease-in both;
+}
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes overlayOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes modalIn {
+from { opacity: 0; transform: scale(0.95); }
+to { opacity: 1; transform: scale(1); }
+}
+@keyframes modalOut {
+from { opacity: 1; transform: scale(1); }
+to { opacity: 0; transform: scale(0.97); }
+}
+.modal-actions {
+display: flex;
+justify-content: flex-end;
+gap: 9px;
+margin-top: 17px;
+}
+.view {
+animation: viewEnter var(--dur-slow) var(--ease-out) both;
+}
+@keyframes viewEnter {
+from { opacity: 0; transform: translateY(6px); }
+to { opacity: 1; transform: translateY(0); }
+}
+@keyframes cardEnter {
+from { opacity: 0; transform: translateY(8px) scale(0.98); }
+to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.card-history summary,
+.active-history summary {
+transition: color var(--dur-base) var(--ease-out);
+}
+.card-history summary::after,
+.active-history summary::after {
+content: "";
+flex-shrink: 0;
+width: 7px;
+height: 7px;
+margin-left: 6px;
+border-right: 2px solid var(--muted);
+border-bottom: 2px solid var(--muted);
+transform: rotate(45deg);
+transition: transform var(--dur-base) var(--ease-out);
+}
+.card-history[open] > summary::after,
+.active-history[open] > summary::after {
+transform: rotate(-135deg);
+}
+[data-theme="light"] .machine-status-pill.idle { color: #1d4fd1; }
+[data-theme="light"] .machine-status-pill.printing { color: #157a45; }
+[data-theme="light"] .machine-status-pill.needs_attention { color: #b3273f; }
+[data-theme="light"] .brand-mark {
+filter: drop-shadow(0 0 10px rgba(29, 153, 255, 0.2));
+}
+[data-theme="light"] .app-header {
+box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+}
+@media (max-width: 1120px) {
+.app-header { grid-template-columns: 1fr auto; }
+.top-nav { display: none; }
+.camera-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.monitor-grid, .lower-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+:root { --header-height: 68px; }
+.app-header { padding: 7px 12px; grid-template-columns: 1fr auto; }
+.brand-mark { height: 38px; }
+.brand-subtitle { display: none; }
+.shell { width: calc(100% - 18px); margin-top: 10px; }
+.camera-grid, .reference-grid { grid-template-columns: 1fr; }
+.category-tab { min-width: 145px; }
+.result-row, .auto-row { grid-template-columns: 1fr; }
+.event { grid-template-columns: 1fr; }
+.event img { width: 100%; height: auto; }
+video { min-height: 260px; }
+}
+.setup-overlay {
+position: fixed;
+inset: 0;
+z-index: 999;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 24px;
+background:
+radial-gradient(1100px 600px at 15% -10%, rgba(18, 218, 244, 0.08), transparent 60%),
+var(--bg);
+}
+.setup-overlay.hidden { display: none; }
+.setup-card {
+width: 100%;
+max-width: 440px;
+padding: 32px 30px 28px;
+border-radius: var(--radius-lg);
+border: 1px solid var(--border-strong);
+background: var(--panel-dark);
+box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+.setup-logo { height: 40px; margin-bottom: 18px; }
+.setup-card h1 {
+margin: 0 0 8px;
+font-size: 22px;
+letter-spacing: -0.01em;
+}
+.setup-sub {
+margin: 0 0 22px;
+color: var(--text-secondary);
+font-size: 13.5px;
+line-height: 1.5;
+}
+.setup-label {
+display: block;
+font-size: 12px;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 0.04em;
+color: var(--muted);
+margin-bottom: 6px;
+}
+.setup-input-row { display: flex; gap: 8px; }
+.setup-input-row input,
+.setup-advanced input {
+flex: 1;
+width: 100%;
+padding: 11px 12px;
+border-radius: var(--radius-md);
+border: 1px solid var(--border);
+background: var(--surface-1);
+color: var(--text);
+font-family: var(--font-mono);
+font-size: 13.5px;
+outline: none;
+transition: border-color var(--dur-fast) var(--ease-out);
+}
+.setup-input-row input:focus,
+.setup-advanced input:focus {
+border-color: var(--cyan);
+}
+.setup-input-row button {
+padding: 0 14px;
+border-radius: var(--radius-md);
+border: 1px solid var(--border);
+background: var(--surface-2);
+color: var(--text-secondary);
+font-size: 12.5px;
+cursor: pointer;
+white-space: nowrap;
+}
+.setup-hint {
+margin: 10px 0 0;
+font-size: 12.5px;
+color: var(--muted);
+}
+.setup-current-key {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 10px;
+margin: 0 0 18px;
+padding: 9px 12px;
+border-radius: var(--radius-md);
+border: 1px solid var(--border);
+background: var(--surface-2);
+}
+.setup-current-key.hidden { display: none; }
+.setup-current-key-label {
+font-size: 11px;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 0.04em;
+color: var(--muted);
+}
+.setup-current-key-value {
+font-family: var(--font-mono);
+font-size: 13px;
+color: var(--text-secondary);
+filter: blur(3px);
+transition: filter var(--dur-fast) var(--ease-out);
+cursor: default;
+user-select: none;
+}
+.setup-current-key-value:hover { filter: blur(0); }
+.setup-hint a { color: var(--cyan); text-decoration: none; }
+.setup-hint a:hover { text-decoration: underline; }
+.setup-advanced {
+margin-top: 16px;
+border-top: 1px dashed var(--border);
+padding-top: 12px;
+}
+.setup-advanced summary {
+cursor: pointer;
+font-size: 12.5px;
+color: var(--muted);
+margin-bottom: 8px;
+}
+.setup-advanced input { margin-top: 4px; }
+.setup-error {
+margin: 14px 0 0;
+padding: 9px 11px;
+border-radius: var(--radius-sm);
+background: rgba(229, 86, 107, 0.12);
+border: 1px solid rgba(229, 86, 107, 0.35);
+color: var(--failure);
+font-size: 12.5px;
+}
+.setup-error.hidden { display: none; }
+.setup-save {
+width: 100%;
+margin-top: 20px;
+padding: 12px;
+font-size: 14px;
+}
+.setup-note {
+margin: 14px 0 0;
+font-size: 11.5px;
+color: var(--muted);
+text-align: center;
+}
+</style>
+</head>
+<body>
+<div id="setupOverlay" class="setup-overlay hidden">
+<div class="setup-card">
+<img class="setup-logo" src="assets/vision-ops-mark.png" alt="Vision OPS logo" />
+<h1>Welcome to Vision OPS</h1>
+<p class="setup-sub">
+Connect your Groq account to start monitoring your machines. Your key is
+saved on this computer's own server (in its local .env file) — it never
+leaves this machine.
+</p>
+<div id="setupCurrentKey" class="setup-current-key hidden">
+<span class="setup-current-key-label">Active key</span>
+<span id="setupCurrentKeyValue" class="setup-current-key-value"></span>
+</div>
+<label class="setup-label" for="setupApiKey">New Groq API key</label>
+<div class="setup-input-row">
+<input id="setupApiKey" type="password" placeholder="gsk_..." autocomplete="off" spellcheck="false" />
+<button id="setupToggleVisibility" type="button">Show</button>
+</div>
+<p class="setup-hint">
+Don't have one? <a href="https://console.groq.com/keys" target="_blank" rel="noopener">Get a free key at console.groq.com</a>
+</p>
+<details class="setup-advanced">
+<summary>Advanced: vision model</summary>
+<input id="setupModel" type="text" placeholder="qwen/qwen3.6-27b" />
+</details>
+<p id="setupError" class="setup-error hidden"></p>
+<button id="setupSave" class="primary setup-save">Save &amp; Continue</button>
+<p class="setup-note">This only reopens if your key is rejected. If you hit Groq's per-minute rate limit instead, Vision OPS saves your session and refreshes automatically to recover — no new key needed.</p>
+</div>
+</div>
+<header class="app-header">
+<div class="brand">
+<img class="brand-mark" src="assets/vision-ops-mark.png" alt="Vision OPS logo" />
+<div>
+<div class="brand-name">Vision OPS</div>
+<div class="brand-subtitle">AI fabrication monitoring platform</div>
+</div>
+</div>
+<nav class="top-nav">
+<button class="nav-button active" data-view="monitors">Monitors</button>
+<button class="nav-button" data-view="active">Active Monitor</button>
+</nav>
+<div class="header-actions">
+<select id="themeSelect" class="theme-select" aria-label="Appearance">
+<option value="dark">Dark mode</option>
+<option value="light">Light mode</option>
+<option value="hex">Hexagonal background</option>
+</select>
+<button id="openSetup" class="secondary" title="Update your Groq API key">API Key</button>
+<button id="scanHeader" class="primary">Scan Cameras</button>
+</div>
+</header>
+<main class="shell">
+<section id="monitorsView" class="panel page-panel view">
+<div class="row-between">
+<div>
+<div class="kicker"><span class="kicker-index">01</span>Device manager</div>
+<h1 class="page-title">
+Monitors
+<span id="totalCount" class="count-pill">0 cameras</span>
+</h1>
+<p class="description">
+Vision OPS automatically labels each camera as Printing, Needs Attention, or Idle after AI analysis.
+</p>
+</div>
+<button id="scanPage" class="secondary">Allow / Refresh Cameras</button>
+</div>
+<div class="category-tabs">
+<button class="category-tab active" data-category="3d_printer">3D Printers <span id="count3d">0</span></button>
+<button class="category-tab" data-category="laser_cutter">Laser Cutters <span id="countLaser">0</span></button>
+<button class="category-tab" data-category="cnc">CNC Machines <span id="countCnc">0</span></button>
+<button class="category-tab" data-category="unassigned">Unassigned <span id="countUnassigned">0</span></button>
+<button class="category-tab" data-category="warehouse">Warehouse <span id="countWarehouse">0</span></button>
+</div>
+<div id="cameraGrid" class="camera-grid"></div>
+<div id="emptyState" class="empty-state">
+<div>
+<h2>No cameras shown in this tab</h2>
+<p id="emptyText" class="description">Allow camera access to detect integrated and USB cameras.</p>
+<button id="scanEmpty" class="primary">Detect Cameras</button>
+</div>
+</div>
+<section id="warehouseSection" class="hidden">
+<div class="row-between warehouse-toolbar">
+<p class="help">Drag blocks to lay out your floor plan. Drag the bottom-right corner to resize. Click a block's dropdown to link it to a camera.</p>
+<div class="controls">
+<button id="addWarehouseBlock" class="primary">+ Add Printer Block</button>
+<button id="clearWarehouseLayout" class="ghost">Clear Layout</button>
+</div>
+</div>
+<div class="warehouse-floor-wrap">
+<div id="warehouseFloor" class="warehouse-floor"></div>
+<span class="corner-mark tl"></span>
+<span class="corner-mark tr"></span>
+<span class="corner-mark bl"></span>
+<span class="corner-mark br"></span>
+</div>
+<div class="warehouse-legend">
+<span class="warehouse-legend-item"><span class="warehouse-legend-swatch status-idle"></span>Idle</span>
+<span class="warehouse-legend-item"><span class="warehouse-legend-swatch status-printing"></span>Printing</span>
+<span class="warehouse-legend-item"><span class="warehouse-legend-swatch status-failure"></span>Spaghetti / Failure</span>
+<span class="warehouse-legend-item"><span class="warehouse-legend-swatch status-pending"></span>Needs attention</span>
+<span class="warehouse-legend-item"><span class="warehouse-legend-swatch status-empty"></span>Unlinked</span>
+</div>
+</section>
+</section>
+<section id="activeView" class="hidden view">
+<section class="panel monitor-header">
+<div class="row-between">
+<div>
+<button id="backButton" class="ghost">← Back to Monitors</button>
+<h1 id="activeTitle" class="monitor-title">No active camera</h1>
+<p id="activeMeta" class="description">Choose a camera from the Monitors page.</p>
+</div>
+<div class="active-badges">
+<span id="activeType" class="type-pill">Unassigned</span>
+<span id="activeMachineStatus" class="machine-status-pill needs_attention">NEEDS ATTENTION</span>
+</div>
+</div>
+</section>
+<div class="monitor-grid">
+<section class="panel camera-panel">
+<div class="kicker"><span class="kicker-index">02</span>Live feed</div>
+<h2>Camera Monitor</h2>
+<div class="video-wrap">
+<video id="camera" autoplay playsinline muted></video>
+<canvas id="detectionOverlay" class="detection-overlay"></canvas>
+<span class="corner-mark tl"></span>
+<span class="corner-mark tr"></span>
+<span class="corner-mark bl"></span>
+<span class="corner-mark br"></span>
+</div>
+<div class="controls">
+<button id="restartCamera" class="secondary" disabled>Restart Camera</button>
+<button id="stopCamera" class="ghost" disabled>Stop Camera</button>
+<button id="analyzeNow" class="primary" disabled>Analyze Now</button>
+</div>
+<div class="auto-row">
+<button id="toggleAuto" class="primary" disabled>Start Auto Monitoring</button>
+<select id="autoInterval">
+<option value="5000">Every 5 sec</option>
+<option value="15000" selected>Every 15 sec</option>
+<option value="30000">Every 30 sec</option>
+</select>
+</div>
+<p id="message" class="message">Select a camera to begin.</p>
+<div id="machineStatusReason" class="status-explanation">
+The machine status is set automatically after the AI analyzes a camera frame.
+</div>
+<div id="confirmationStatus" class="status-explanation hidden"></div>
+<div class="palette-panel">
+<h3>Detected Filament Palette</h3>
+<div id="activePalette" class="palette">
+<span class="palette-empty">Analyze a frame to identify filament colors.</span>
+</div>
+</div>
+<details class="active-history">
+<summary>
+<span>Camera Event History</span>
+<span id="historyCount">0 events</span>
+</summary>
+<div class="history-toolbar">
+<button id="downloadReport" class="secondary" disabled>Download Camera Report</button>
+<button id="clearHistory" class="danger" disabled>Clear Camera History</button>
+</div>
+<div id="historyList" class="history-list">
+<div class="help">No events recorded for this camera.</div>
+</div>
+</details>
+</section>
+<section class="panel status-panel">
+<div class="beacon-wrap">
+<div class="kicker"><span class="kicker-index">03</span>AI status</div>
+<h2>Status Beacon</h2>
+<div id="beacon"></div>
+<div id="beaconLabel">Standby</div>
+</div>
+<div id="detectionSnapshotWrap" class="palette-panel detection-snapshot-wrap hidden">
+<h3>Flagged Region</h3>
+<img id="detectionSnapshot" class="detection-snapshot" alt="Detected failure region" />
+</div>
+<div id="resultCard">
+<span class="corner-mark tl"></span>
+<span class="corner-mark tr"></span>
+<span class="corner-mark bl"></span>
+<span class="corner-mark br"></span>
+<h2 id="resultStatus">Not analyzed</h2>
+<div class="result-row">
+<div class="result-label">Machine status</div>
+<div id="machineStatusValue">Needs Attention</div>
+</div>
+<div class="result-row">
+<div class="result-label">Status confidence</div>
+<div>
+<span id="statusConfidence">—</span>
+<div class="confidence-track"><div id="statusConfidenceBar"></div></div>
+</div>
+</div>
+<div class="result-row"><div class="result-label">Scene</div><div id="sceneState">—</div></div>
+<div class="result-row"><div class="result-label">Build plate visible</div><div id="plateVisible">—</div></div>
+<div class="result-row"><div class="result-label">Printed part visible</div><div id="partVisible">—</div></div>
+<div class="result-row"><div class="result-label">Failure type</div><div id="failureType">None</div></div>
+<div class="result-row">
+<div class="result-label">AI confidence</div>
+<div>
+<span id="confidence">—</span>
+<div class="confidence-track"><div id="confidenceBar"></div></div>
+</div>
+</div>
+<div class="result-row"><div class="result-label">Severity</div><div id="severity">—</div></div>
+<div class="result-row"><div class="result-label">Action</div><div id="action">—</div></div>
+<div class="result-row"><div class="result-label">Reason</div><div id="reason">No analysis yet.</div></div>
+<div class="result-row"><div class="result-label">Evidence</div><div id="evidence">—</div></div>
+<div class="result-row"><div class="result-label">Probable cause</div><div id="cause">—</div></div>
+<div class="result-row"><div class="result-label">Next step</div><div id="nextStep">—</div></div>
+</div>
+</section>
+</div>
+<div class="lower-grid">
+<section class="panel calibration-panel">
+<div class="kicker"><span class="kicker-index">04</span>Calibration</div>
+<h2>Build Plate Area</h2>
+<p class="help">Capture a still frame, then drag a rectangle around the build plate.</p>
+<canvas id="calibrationCanvas"></canvas>
+<div id="calibrationPlaceholder" class="calibration-placeholder">
+Start the selected camera, then press “Capture Calibration Snapshot.”
+</div>
+<div class="controls">
+<button id="captureCalibration" class="primary" disabled>Capture Calibration Snapshot</button>
+<button id="clearCalibration" class="ghost" disabled>Clear Rectangle</button>
+</div>
+<p id="calibrationStatus" class="help">No monitored area selected.</p>
+</section>
+<section class="panel reference-panel">
+<div class="kicker"><span class="kicker-index">05</span>AI context</div>
+<h2>Reference Images</h2>
+<div class="reference-grid">
+<div class="reference-card">
+<h3>Empty Work Area</h3>
+<div id="emptyReferenceEmpty" class="reference-empty">No empty reference</div>
+<img id="emptyReferencePreview" class="reference-preview" alt="Empty reference" hidden />
+<div class="controls">
+<button id="setEmptyReference" class="success" disabled>Set Empty Reference</button>
+<button id="clearEmptyReference" class="ghost" disabled>Clear</button>
+</div>
+</div>
+<div class="reference-card">
+<h3>Expected / Known-Good</h3>
+<div id="expectedReferenceEmpty" class="reference-empty">No expected reference</div>
+<img id="expectedReferencePreview" class="reference-preview" alt="Expected reference" hidden />
+<div class="controls">
+<button id="captureKnownGood" class="success" disabled>Capture Known-Good</button>
+<button id="clearExpectedReference" class="ghost" disabled>Clear</button>
+</div>
+<div class="upload-box">
+<label for="expectedUpload">Or upload a slicer/reference screenshot</label>
+<input id="expectedUpload" type="file" accept="image/*" />
+</div>
+</div>
+<div class="reference-card">
+<h3>Previous Analyzed Frame</h3>
+<div id="previousReferenceEmpty" class="reference-empty">Created automatically</div>
+<img id="previousReferencePreview" class="reference-preview" alt="Previous frame" hidden />
+<div class="controls">
+<button id="clearPreviousReference" class="ghost" disabled>Clear</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</section>
+</main>
+<div id="renameModal" class="modal-background hidden">
+<div class="modal">
+<h2>Rename Camera</h2>
+<p id="renameOriginal" class="help"></p>
+<label for="renameInput">Custom camera or machine name</label>
+<input id="renameInput" maxlength="80" placeholder="Example: K2 Plus Camera" />
+<div class="modal-actions">
+<button id="cancelRename" class="ghost">Cancel</button>
+<button id="saveRename" class="primary">Save Name</button>
+</div>
+</div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const CATEGORY_LABELS = {
+"3d_printer": "3D Printer",
+"laser_cutter": "Laser Cutter",
+"cnc": "CNC Machine",
+"unassigned": "Unassigned",
+"warehouse": "Warehouse",
+};
+const PROFILE_KEY = "visionOpsCameraProfilesV4";
+const WAREHOUSE_KEY = "visionOpsWarehouseLayoutV1";
+const SESSION_STATE_KEY = "visionOpsSessionStateV1";
+const RATE_LIMIT_COOLDOWN_MS = 60_000;
+const MAX_EVENTS_PER_CAMERA = 40;
+const elements = {
+monitorsView: $("monitorsView"),
+activeView: $("activeView"),
+themeSelect: $("themeSelect"),
+scanHeader: $("scanHeader"),
+scanPage: $("scanPage"),
+scanEmpty: $("scanEmpty"),
+cameraGrid: $("cameraGrid"),
+emptyState: $("emptyState"),
+emptyText: $("emptyText"),
+warehouseSection: $("warehouseSection"),
+warehouseFloor: $("warehouseFloor"),
+countWarehouse: $("countWarehouse"),
+addWarehouseBlock: $("addWarehouseBlock"),
+clearWarehouseLayout: $("clearWarehouseLayout"),
+totalCount: $("totalCount"),
+count3d: $("count3d"),
+countLaser: $("countLaser"),
+countCnc: $("countCnc"),
+countUnassigned: $("countUnassigned"),
+backButton: $("backButton"),
+activeTitle: $("activeTitle"),
+activeMeta: $("activeMeta"),
+activeType: $("activeType"),
+activeMachineStatus: $("activeMachineStatus"),
+camera: $("camera"),
+detectionOverlay: $("detectionOverlay"),
+detectionSnapshotWrap: $("detectionSnapshotWrap"),
+detectionSnapshot: $("detectionSnapshot"),
+restartCamera: $("restartCamera"),
+stopCamera: $("stopCamera"),
+analyzeNow: $("analyzeNow"),
+toggleAuto: $("toggleAuto"),
+autoInterval: $("autoInterval"),
+message: $("message"),
+machineStatusReason: $("machineStatusReason"),
+confirmationStatus: $("confirmationStatus"),
+activePalette: $("activePalette"),
+historyCount: $("historyCount"),
+historyList: $("historyList"),
+downloadReport: $("downloadReport"),
+clearHistory: $("clearHistory"),
+beacon: $("beacon"),
+beaconLabel: $("beaconLabel"),
+resultCard: $("resultCard"),
+resultStatus: $("resultStatus"),
+machineStatusValue: $("machineStatusValue"),
+statusConfidence: $("statusConfidence"),
+statusConfidenceBar: $("statusConfidenceBar"),
+sceneState: $("sceneState"),
+plateVisible: $("plateVisible"),
+partVisible: $("partVisible"),
+failureType: $("failureType"),
+confidence: $("confidence"),
+confidenceBar: $("confidenceBar"),
+severity: $("severity"),
+action: $("action"),
+reason: $("reason"),
+evidence: $("evidence"),
+cause: $("cause"),
+nextStep: $("nextStep"),
+calibrationCanvas: $("calibrationCanvas"),
+calibrationPlaceholder: $("calibrationPlaceholder"),
+captureCalibration: $("captureCalibration"),
+clearCalibration: $("clearCalibration"),
+calibrationStatus: $("calibrationStatus"),
+setEmptyReference: $("setEmptyReference"),
+clearEmptyReference: $("clearEmptyReference"),
+emptyReferencePreview: $("emptyReferencePreview"),
+emptyReferenceEmpty: $("emptyReferenceEmpty"),
+captureKnownGood: $("captureKnownGood"),
+clearExpectedReference: $("clearExpectedReference"),
+expectedReferencePreview: $("expectedReferencePreview"),
+expectedReferenceEmpty: $("expectedReferenceEmpty"),
+expectedUpload: $("expectedUpload"),
+previousReferencePreview: $("previousReferencePreview"),
+previousReferenceEmpty: $("previousReferenceEmpty"),
+clearPreviousReference: $("clearPreviousReference"),
+renameModal: $("renameModal"),
+renameOriginal: $("renameOriginal"),
+renameInput: $("renameInput"),
+cancelRename: $("cancelRename"),
+saveRename: $("saveRename"),
+setupOverlay: $("setupOverlay"),
+setupApiKey: $("setupApiKey"),
+setupModel: $("setupModel"),
+setupSave: $("setupSave"),
+setupError: $("setupError"),
+setupToggleVisibility: $("setupToggleVisibility"),
+setupCurrentKey: $("setupCurrentKey"),
+setupCurrentKeyValue: $("setupCurrentKeyValue"),
+openSetup: $("openSetup"),
+};
+
+// --- API key setup screen -------------------------------------------------
+function updateCurrentKeyChip(maskedApiKey) {
+if (maskedApiKey) {
+elements.setupCurrentKeyValue.textContent = maskedApiKey;
+elements.setupCurrentKey.classList.remove("hidden");
+} else {
+elements.setupCurrentKey.classList.add("hidden");
+}
+}
+function showSetup(prefillModel) {
+elements.setupOverlay.classList.remove("hidden");
+if (prefillModel) elements.setupModel.value = prefillModel;
+elements.setupApiKey.value = "";
+elements.setupApiKey.type = "password";
+elements.setupToggleVisibility.textContent = "Show";
+elements.setupError.classList.add("hidden");
+elements.setupApiKey.focus();
+}
+function hideSetup() {
+elements.setupOverlay.classList.add("hidden");
+}
+elements.setupToggleVisibility.addEventListener("click", () => {
+const showing = elements.setupApiKey.type === "text";
+elements.setupApiKey.type = showing ? "password" : "text";
+elements.setupToggleVisibility.textContent = showing ? "Show" : "Hide";
+});
+async function saveSetup() {
+const apiKey = elements.setupApiKey.value.trim();
+const modelValue = elements.setupModel.value.trim();
+if (!apiKey) {
+elements.setupError.textContent = "Enter your Groq API key first.";
+elements.setupError.classList.remove("hidden");
+return;
+}
+elements.setupSave.disabled = true;
+elements.setupSave.textContent = "Saving…";
+try {
+const response = await fetch("/api/config", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ apiKey, ...(modelValue ? { model: modelValue } : {}) }),
+});
+const data = await response.json().catch(() => ({}));
+if (!response.ok) {
+throw new Error(data.error || "The key could not be saved.");
+}
+updateCurrentKeyChip(data.maskedApiKey);
+hideSetup();
+} catch (error) {
+elements.setupError.textContent = error.message;
+elements.setupError.classList.remove("hidden");
+} finally {
+elements.setupSave.disabled = false;
+elements.setupSave.textContent = "Save & Continue";
+}
+}
+elements.setupSave.addEventListener("click", saveSetup);
+elements.setupApiKey.addEventListener("keydown", (event) => {
+if (event.key === "Enter") saveSetup();
+});
+elements.openSetup.addEventListener("click", () => showSetup(elements.setupModel.value));
+(async function checkApiKeyConfigured() {
+try {
+const response = await fetch("/api/config");
+const data = await response.json();
+elements.setupModel.value = data.model || "";
+updateCurrentKeyChip(data.maskedApiKey);
+if (!data.hasApiKey) showSetup(data.model);
+} catch (error) {
+showSetup();
+}
+})();
+
+let cameraDevices = [];
+let cameraProfiles = loadProfiles();
+let cameraStates = {};
+let currentCategory = "3d_printer";
+let selectedCameraId = null;
+let selectedMachineType = null;
+let renameTargetId = null;
+let stream = null;
+let autoTimer = null;
+let analyzing = false;
+let calibrationImage = null;
+let dragStart = null;
+let currentDetection = null;
+let liveSocket = null;
+let confirmationTargetDefault = 3;
+let warehouseBlocks = loadWarehouseBlocks();
+let warehouseDrag = null;
+let rateLimitRetryCount = 0;
+let rateLimitRecoveryScheduled = false;
+function loadProfiles() {
+try {
+const value = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}");
+return value && typeof value === "object" ? value : {};
+} catch {
+return {};
+}
+}
+function saveProfiles() {
+localStorage.setItem(PROFILE_KEY, JSON.stringify(cameraProfiles));
+}
+function loadWarehouseBlocks() {
+try {
+const value = JSON.parse(localStorage.getItem(WAREHOUSE_KEY) || "[]");
+return Array.isArray(value) ? value : [];
+} catch {
+return [];
+}
+}
+function saveWarehouseBlocks() {
+localStorage.setItem(WAREHOUSE_KEY, JSON.stringify(warehouseBlocks));
+}
+// Vision OPS occasionally has to refresh the page on its own (see
+// scheduleAutoRecovery below) to recover from a Groq rate-limit error, since
+// a hard reload is the most reliable way to stop in-flight/queued requests
+// from continuing to hammer the API. saveSessionState/resumeSessionIfAvailable
+// make that refresh invisible to the user: everything that lives only in
+// memory (per-camera event history, references, the previous-frame snapshot,
+// which camera/machine type was active, and whether auto monitoring was
+// running) is snapshotted to localStorage right before the page goes away,
+// and restored right after it comes back — including a manual browser
+// refresh, not just the automatic one.
+function buildSessionSnapshot(extra = {}) {
+return {
+version: 1,
+savedAt: Date.now(),
+cameraStates,
+selectedCameraId,
+selectedMachineType,
+currentCategory,
+autoIntervalValue: elements.autoInterval.value,
+wasAutoMonitoring: Boolean(autoTimer),
+rateLimitRetryCount,
+...extra,
+};
+}
+function saveSessionState(extra = {}) {
+try {
+localStorage.setItem(SESSION_STATE_KEY, JSON.stringify(buildSessionSnapshot(extra)));
+} catch (error) {
+// Most likely a quota error from accumulated event thumbnails. Retry once
+// with a trimmed history so a save failure never loses the whole session.
+console.error("Vision OPS: could not save session state, retrying with trimmed history.", error);
+try {
+const trimmedStates = {};
+Object.entries(cameraStates).forEach(([deviceId, state]) => {
+trimmedStates[deviceId] = { ...state, events: (state.events || []).slice(0, 5) };
+});
+localStorage.setItem(
+SESSION_STATE_KEY,
+JSON.stringify(buildSessionSnapshot({ ...extra, cameraStates: trimmedStates })),
+);
+} catch (innerError) {
+console.error("Vision OPS: session state could not be saved even after trimming.", innerError);
+}
+}
+}
+function loadSessionState() {
+try {
+const raw = localStorage.getItem(SESSION_STATE_KEY);
+if (!raw) return null;
+const snapshot = JSON.parse(raw);
+return snapshot && typeof snapshot === "object" ? snapshot : null;
+} catch (error) {
+console.error("Vision OPS: could not read saved session state.", error);
+return null;
+}
+}
+// Called once at startup. Restores event history/references/status for every
+// camera immediately (cheap, no permissions needed), then — only if a camera
+// was actively being watched before the refresh — re-scans cameras, reopens
+// that camera's live stream, and resumes automatic monitoring if it was on.
+async function resumeSessionIfAvailable() {
+const snapshot = loadSessionState();
+if (!snapshot) return;
+if (snapshot.cameraStates && typeof snapshot.cameraStates === "object") {
+cameraStates = snapshot.cameraStates;
+}
+if (Number.isFinite(snapshot.rateLimitRetryCount)) {
+rateLimitRetryCount = snapshot.rateLimitRetryCount;
+}
+if (snapshot.currentCategory) {
+currentCategory = snapshot.currentCategory;
+document.querySelectorAll(".category-tab").forEach((tab) => {
+tab.classList.toggle("active", tab.dataset.category === currentCategory);
+});
+}
+if (snapshot.autoIntervalValue) {
+elements.autoInterval.value = snapshot.autoIntervalValue;
+}
+if (!snapshot.selectedCameraId) return;
+await scanCameras();
+const stillConnected = cameraDevices.some((device) => device.deviceId === snapshot.selectedCameraId);
+if (!stillConnected) {
+elements.message.textContent =
+"Restored your previous session data. The camera that was being monitored isn't connected — pick one to resume live monitoring.";
+return;
+}
+await watchCamera(snapshot.selectedCameraId);
+if (snapshot.wasAutoMonitoring && stream) {
+toggleAuto();
+elements.message.textContent = "Restored your previous session and resumed automatic monitoring.";
+} else {
+elements.message.textContent = "Restored your previous session data.";
+}
+}
+// A Groq rate-limit (429) response means the account has hit its per-minute
+// token/request cap; retrying immediately just fails again. A full page
+// refresh reliably stops any in-flight/queued auto-monitoring requests, and
+// after a cooldown the rate limit window will have reset. Retries back off
+// (60s, 120s, 240s, capped at 5 min) in case the limit doesn't clear right
+// away, and reset to 60s again as soon as an analysis succeeds.
+function scheduleAutoRecovery() {
+if (rateLimitRecoveryScheduled) return;
+rateLimitRecoveryScheduled = true;
+const wasAutoMonitoring = Boolean(autoTimer);
+stopAuto(false);
+const cooldownMs = Math.min(300_000, RATE_LIMIT_COOLDOWN_MS * Math.pow(2, rateLimitRetryCount));
+rateLimitRetryCount += 1;
+saveSessionState({ wasAutoMonitoring, rateLimitRetryCount });
+let secondsLeft = Math.round(cooldownMs / 1000);
+const describe = () =>
+`Groq rate limit reached. Vision OPS saved your session and will refresh in ${secondsLeft}s to recover automatically…`;
+elements.message.textContent = describe();
+const countdown = setInterval(() => {
+secondsLeft = Math.max(0, secondsLeft - 1);
+elements.message.textContent = describe();
+}, 1000);
+setTimeout(() => {
+clearInterval(countdown);
+window.location.reload();
+}, cooldownMs);
+}
+function stateFor(deviceId) {
+if (!cameraStates[deviceId]) {
+cameraStates[deviceId] = {
+crop: null,
+emptyReference: null,
+expectedReference: null,
+previousFrame: null,
+events: [],
+machineStatus: "needs_attention",
+statusConfidence: 0,
+machineStatusReason: "Analyze a camera frame to determine the machine status.",
+colors: [],
+confirmedFailure: false,
+lastFailureType: null,
+};
+}
+return cameraStates[deviceId];
+}
+function profileFor(device, index = 0) {
+if (!cameraProfiles[device.deviceId]) {
+cameraProfiles[device.deviceId] = {
+customName: device.label || `Camera ${index + 1}`,
+category: "unassigned",
+};
+}
+return cameraProfiles[device.deviceId];
+}
+function escapeHtml(value) {
+return String(value ?? "").replace(/[&<>'"]/g, (character) => ({
+"&": "&amp;",
+"<": "&lt;",
+">": "&gt;",
+"'": "&#39;",
+'"': "&quot;",
+})[character]);
+}
+function formatText(value) {
+return typeof value === "string"
+? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+: "Unknown";
+}
+function machineStatusLabel(status) {
+if (status === "printing") return "PRINTING";
+if (status === "idle") return "IDLE";
+return "NEEDS ATTENTION";
+}
+const SCENE_STATE_LABELS = {
+idle_empty_build_plate: "Ready — nothing on the plate",
+object_on_build_plate: "Object on build plate",
+printing_normally: "Printing normally",
+printing_suspicious: "Printing — worth a look",
+printing_failure: "Print failure detected",
+failed_material_on_plate: "Failed material on plate",
+camera_unusable: "Camera view unusable",
+unknown: "Status unknown",
+};
+function sceneStateLabel(value) {
+if (typeof value === "string" && SCENE_STATE_LABELS[value]) {
+return SCENE_STATE_LABELS[value];
+}
+return formatText(value);
+}
+function showView(name) {
+elements.monitorsView.classList.toggle("hidden", name !== "monitors");
+elements.activeView.classList.toggle("hidden", name !== "active");
+document.querySelectorAll(".nav-button").forEach((button) => {
+button.classList.toggle("active", button.dataset.view === name);
+});
+}
+function paletteHtml(colors) {
+if (!Array.isArray(colors) || colors.length === 0) {
+return '<span class="palette-empty">No filament colors detected</span>';
+}
+return colors.map((color) => {
+const confidence = Math.round(Number(color.confidence || 0) * 100);
+return `
+<span class="color-chip" title="Confidence: ${confidence}%">
+<span class="color-swatch" style="background:${escapeHtml(color.hex)}"></span>
+${escapeHtml(color.name)} ${escapeHtml(color.hex)}
+</span>
+`;
+}).join("");
+}
+async function scanCameras() {
+const buttons = [elements.scanHeader, elements.scanPage, elements.scanEmpty];
+buttons.forEach((button) => { button.disabled = true; button.classList.add("is-loading"); });
+try {
+elements.emptyText.textContent = "Requesting permission and scanning connected cameras…";
+const permission = await navigator.mediaDevices.getUserMedia({
+video: true,
+audio: false,
+});
+permission.getTracks().forEach((track) => track.stop());
+const devices = await navigator.mediaDevices.enumerateDevices();
+cameraDevices = devices.filter((device) => device.kind === "videoinput");
+cameraDevices.forEach((device, index) => {
+profileFor(device, index);
+stateFor(device.deviceId);
+});
+saveProfiles();
+renderMonitors();
+} catch (error) {
+console.error(error);
+elements.cameraGrid.innerHTML = "";
+elements.emptyState.classList.remove("hidden");
+elements.emptyText.textContent =
+"Camera access was denied or unavailable. Allow camera permission, then scan again.";
+} finally {
+buttons.forEach((button) => { button.disabled = false; button.classList.remove("is-loading"); });
+}
+}
+function updateCounts() {
+const counts = {
+"3d_printer": 0,
+"laser_cutter": 0,
+"cnc": 0,
+"unassigned": 0,
+};
+cameraDevices.forEach((device, index) => {
+const category = profileFor(device, index).category || "unassigned";
+counts[category]++;
+});
+elements.count3d.textContent = counts["3d_printer"];
+elements.countLaser.textContent = counts["laser_cutter"];
+elements.countCnc.textContent = counts["cnc"];
+elements.countUnassigned.textContent = counts["unassigned"];
+elements.totalCount.textContent = `${cameraDevices.length} camera${cameraDevices.length === 1 ? "" : "s"}`;
+}
+function cardHistoryHtml(deviceId) {
+const events = stateFor(deviceId).events;
+if (events.length === 0) {
+return '<div class="help" style="padding:12px">No events recorded.</div>';
+}
+return events.slice(0, 20).map((event) => `
+<article class="mini-event ${escapeHtml(event.data.status)}">
+<p>
+<strong>${escapeHtml(machineStatusLabel(event.data.machine_status))}</strong>
+· ${escapeHtml(formatText(event.data.failure_type))}
+</p>
+<p class="mono">${escapeHtml(new Date(event.timestamp).toLocaleString())}</p>
+</article>
+`).join("");
+}
+function renderCameraCards() {
+updateCounts();
+const filtered = cameraDevices.filter((device, index) =>
+profileFor(device, index).category === currentCategory,
+);
+elements.cameraGrid.innerHTML = "";
+elements.emptyState.classList.toggle("hidden", filtered.length > 0);
+if (filtered.length === 0) {
+elements.emptyText.textContent = cameraDevices.length
+? `No cameras are assigned to ${CATEGORY_LABELS[currentCategory]}. Use the Unassigned tab to assign one.`
+: "Allow camera access to detect integrated and USB cameras.";
+return;
+}
+filtered.forEach((device, position) => {
+const index = cameraDevices.findIndex((item) => item.deviceId === device.deviceId);
+const profile = profileFor(device, index);
+const state = stateFor(device.deviceId);
+const eventCount = state.events.length;
+const card = document.createElement("article");
+card.className = "camera-card";
+card.style.animationDelay = `${Math.min(position, 10) * 35}ms`;
+card.innerHTML = `
+<div class="camera-head">
+<div class="camera-icon">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+<path d="M4 7.5h3l1.4-2h7.2l1.4 2h3a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5a2 2 0 0 1 2-2Z"></path>
+<circle cx="12" cy="13" r="4"></circle>
+</svg>
+</div>
+<div>
+<h3>${escapeHtml(profile.customName || device.label || "Camera")}</h3>
+<p class="camera-original">${escapeHtml(device.label || "Camera label available after permission")}</p>
+</div>
+</div>
+<div class="available"><span class="dot"></span>Available</div>
+<div class="card-status-row">
+<span class="machine-status-pill ${escapeHtml(state.machineStatus)}">
+${escapeHtml(machineStatusLabel(state.machineStatus))}
+</span>
+<span class="count-pill">${eventCount} event${eventCount === 1 ? "" : "s"}</span>
+</div>
+<div class="camera-meta">
+<div class="mini">
+<span>Assigned to</span>
+<strong>${escapeHtml(CATEGORY_LABELS[profile.category])}</strong>
+</div>
+<div class="mini">
+<span>Device ID</span>
+<strong>${escapeHtml(device.deviceId.slice(0, 12) || "Browser camera")}</strong>
+</div>
+</div>
+<div class="palette" style="margin-bottom:12px">
+${paletteHtml(state.colors)}
+</div>
+<label>Move camera to</label>
+<select class="category-select" data-device-id="${escapeHtml(device.deviceId)}">
+<option value="unassigned" ${profile.category === "unassigned" ? "selected" : ""}>Unassigned</option>
+<option value="3d_printer" ${profile.category === "3d_printer" ? "selected" : ""}>3D Printers</option>
+<option value="laser_cutter" ${profile.category === "laser_cutter" ? "selected" : ""}>Laser Cutters</option>
+<option value="cnc" ${profile.category === "cnc" ? "selected" : ""}>CNC Machines</option>
+</select>
+<div class="camera-actions">
+<button class="primary watch" data-action="watch" data-device-id="${escapeHtml(device.deviceId)}" ${profile.category === "unassigned" ? "disabled" : ""}>Watch Feed</button>
+<button class="secondary" data-action="rename" data-device-id="${escapeHtml(device.deviceId)}">Rename</button>
+</div>
+<details class="card-history">
+<summary><span>Event History</span><span>${eventCount}</span></summary>
+<div class="card-history-list">${cardHistoryHtml(device.deviceId)}</div>
+</details>
+`;
+elements.cameraGrid.appendChild(card);
+});
+elements.cameraGrid.querySelectorAll(".category-select").forEach((select) => {
+select.addEventListener("change", () => {
+cameraProfiles[select.dataset.deviceId].category = select.value;
+saveProfiles();
+renderMonitors();
+});
+});
+elements.cameraGrid.querySelectorAll("[data-action='watch']").forEach((button) => {
+button.addEventListener("click", () => watchCamera(button.dataset.deviceId));
+});
+elements.cameraGrid.querySelectorAll("[data-action='rename']").forEach((button) => {
+button.addEventListener("click", () => openRename(button.dataset.deviceId));
+});
+}
+function updateCategoryVisibility() {
+const isWarehouse = currentCategory === "warehouse";
+elements.cameraGrid.classList.toggle("hidden", isWarehouse);
+elements.warehouseSection.classList.toggle("hidden", !isWarehouse);
+if (isWarehouse) elements.emptyState.classList.add("hidden");
+}
+function renderMonitors() {
+renderCameraCards();
+renderWarehouseBlocks();
+updateCategoryVisibility();
+}
+function warehouseBlockStatus(deviceId) {
+if (!deviceId) return { key: "empty", label: "Unassigned" };
+const device = cameraDevices.find((item) => item.deviceId === deviceId);
+if (!device) return { key: "offline", label: "Camera not found — rescan" };
+const state = stateFor(deviceId);
+if (state.confirmedFailure) {
+return { key: "failure", label: formatText(state.lastFailureType || "failure") };
+}
+if (state.machineStatus === "printing") return { key: "printing", label: "Printing" };
+if (state.machineStatus === "idle") return { key: "idle", label: "Idle" };
+if (state.events.length === 0 && state.statusConfidence === 0) return { key: "empty", label: "No data yet" };
+return { key: "pending", label: "Needs attention" };
+}
+function applyBlockGeometry(el, block) {
+el.style.left = `${block.x * 100}%`;
+el.style.top = `${block.y * 100}%`;
+el.style.width = `${block.w * 100}%`;
+el.style.height = `${block.h * 100}%`;
+}
+function addWarehouseBlock() {
+const stagger = (warehouseBlocks.length % 6) * 0.035;
+warehouseBlocks.push({
+id: crypto.randomUUID?.() || String(Date.now()),
+x: 0.04 + stagger,
+y: 0.05 + stagger,
+w: 0.16,
+h: 0.18,
+deviceId: "",
+});
+saveWarehouseBlocks();
+renderWarehouseBlocks();
+}
+function clearWarehouseLayout() {
+if (warehouseBlocks.length === 0) return;
+if (!confirm("Remove every block from the warehouse layout?")) return;
+warehouseBlocks = [];
+saveWarehouseBlocks();
+renderWarehouseBlocks();
+}
+function makeWarehouseBlockDraggable(el, block) {
+let mode = null;
+let startClientX = 0;
+let startClientY = 0;
+let startBlock = null;
+function onPointerDown(event) {
+if (event.target.closest("select, .warehouse-block-remove")) return;
+mode = event.target.closest(".warehouse-block-resize") ? "resize" : "move";
+startClientX = event.clientX;
+startClientY = event.clientY;
+startBlock = { x: block.x, y: block.y, w: block.w, h: block.h };
+el.setPointerCapture(event.pointerId);
+el.classList.add("dragging");
+event.preventDefault();
+}
+function onPointerMove(event) {
+if (!mode) return;
+const floorRect = elements.warehouseFloor.getBoundingClientRect();
+if (!floorRect.width || !floorRect.height) return;
+const dxFrac = (event.clientX - startClientX) / floorRect.width;
+const dyFrac = (event.clientY - startClientY) / floorRect.height;
+if (mode === "move") {
+block.x = Math.max(0, Math.min(1 - block.w, startBlock.x + dxFrac));
+block.y = Math.max(0, Math.min(1 - block.h, startBlock.y + dyFrac));
+} else {
+block.w = Math.max(0.06, Math.min(1 - block.x, startBlock.w + dxFrac));
+block.h = Math.max(0.06, Math.min(1 - block.y, startBlock.h + dyFrac));
+}
+applyBlockGeometry(el, block);
+}
+function onPointerUp(event) {
+if (!mode) return;
+mode = null;
+el.classList.remove("dragging");
+try { el.releasePointerCapture(event.pointerId); } catch {}
+saveWarehouseBlocks();
+}
+el.addEventListener("pointerdown", onPointerDown);
+el.addEventListener("pointermove", onPointerMove);
+el.addEventListener("pointerup", onPointerUp);
+el.addEventListener("pointercancel", onPointerUp);
+}
+function renderWarehouseBlocks() {
+elements.countWarehouse.textContent = warehouseBlocks.length;
+if (warehouseBlocks.length === 0) {
+elements.warehouseFloor.innerHTML = '<div class="warehouse-hint">No printer blocks yet. Click “+ Add Printer Block” to start building your layout.</div>';
+return;
+}
+elements.warehouseFloor.innerHTML = "";
+warehouseBlocks.forEach((block) => {
+const status = warehouseBlockStatus(block.deviceId);
+const device = cameraDevices.find((item) => item.deviceId === block.deviceId);
+const profile = block.deviceId ? cameraProfiles[block.deviceId] : null;
+const name = block.deviceId ? (profile?.customName || device?.label || "Camera") : "Empty slot";
+const el = document.createElement("div");
+el.className = `warehouse-block status-${status.key}`;
+el.dataset.id = block.id;
+applyBlockGeometry(el, block);
+el.innerHTML = `
+<button type="button" class="warehouse-block-remove" aria-label="Remove block">×</button>
+<div class="warehouse-block-name">${escapeHtml(name)}</div>
+<select class="warehouse-block-select">
+<option value="">Unassigned</option>
+${cameraDevices.map((item) => `<option value="${escapeHtml(item.deviceId)}" ${item.deviceId === block.deviceId ? "selected" : ""}>${escapeHtml(cameraProfiles[item.deviceId]?.customName || item.label || "Camera")}</option>`).join("")}
+</select>
+<div class="warehouse-block-status-text mono">${escapeHtml(status.label)}</div>
+<span class="warehouse-block-resize" aria-hidden="true"></span>
+`;
+el.querySelector(".warehouse-block-remove").addEventListener("click", (event) => {
+event.stopPropagation();
+warehouseBlocks = warehouseBlocks.filter((item) => item.id !== block.id);
+saveWarehouseBlocks();
+renderWarehouseBlocks();
+});
+el.querySelector(".warehouse-block-select").addEventListener("change", (event) => {
+block.deviceId = event.target.value;
+saveWarehouseBlocks();
+renderWarehouseBlocks();
+});
+makeWarehouseBlockDraggable(el, block);
+elements.warehouseFloor.appendChild(el);
+});
+}
+function openRename(deviceId) {
+const device = cameraDevices.find((item) => item.deviceId === deviceId);
+if (!device) return;
+renameTargetId = deviceId;
+elements.renameOriginal.textContent = device.label || "Browser camera device";
+elements.renameInput.value = cameraProfiles[deviceId]?.customName || device.label || "";
+elements.renameModal.classList.remove("hidden", "closing");
+requestAnimationFrame(() => elements.renameInput.focus());
+}
+function closeRename() {
+renameTargetId = null;
+elements.renameModal.classList.add("closing");
+setTimeout(() => {
+elements.renameModal.classList.add("hidden");
+elements.renameModal.classList.remove("closing");
+}, 140);
+}
+function saveRename() {
+if (!renameTargetId) return;
+const name = elements.renameInput.value.trim();
+if (!name) return;
+cameraProfiles[renameTargetId].customName = name;
+saveProfiles();
+if (selectedCameraId === renameTargetId) {
+elements.activeTitle.textContent = name;
+}
+closeRename();
+renderMonitors();
+}
+async function watchCamera(deviceId) {
+const device = cameraDevices.find((item) => item.deviceId === deviceId);
+const profile = cameraProfiles[deviceId];
+if (!device || !profile || profile.category === "unassigned") return;
+stopAuto(false);
+stopStream();
+selectedCameraId = deviceId;
+selectedMachineType = profile.category;
+calibrationImage = null;
+elements.calibrationCanvas.style.display = "none";
+elements.calibrationPlaceholder.classList.remove("hidden");
+const state = stateFor(deviceId);
+elements.activeTitle.textContent = profile.customName || device.label || "Camera";
+elements.activeMeta.textContent = device.label || "Connected camera";
+elements.activeType.textContent = CATEGORY_LABELS[profile.category];
+updateMachineStatus(state.machineStatus, state.statusConfidence, state.machineStatusReason);
+renderActivePalette();
+renderHistory();
+loadReferences();
+showView("active");
+await startCamera();
+}
+async function startCamera() {
+if (!selectedCameraId) return;
+stopStream();
+elements.message.textContent = "Opening selected camera…";
+try {
+stream = await navigator.mediaDevices.getUserMedia({
+video: {
+deviceId: { exact: selectedCameraId },
+width: { ideal: 1280 },
+height: { ideal: 720 },
+},
+audio: false,
+});
+elements.camera.srcObject = stream;
+await elements.camera.play();
+[
+elements.restartCamera,
+elements.stopCamera,
+elements.analyzeNow,
+elements.toggleAuto,
+elements.captureCalibration,
+elements.captureKnownGood,
+].forEach((button) => { button.disabled = false; });
+setBeacon("monitoring");
+elements.message.textContent = "Camera is running. Click Analyze Now or start automatic monitoring.";
+} catch (error) {
+console.error(error);
+showError("The selected camera could not be opened. It may be in use by another program.");
+elements.message.textContent = "Camera failed to start.";
+}
+}
+function stopStream() {
+if (stream) stream.getTracks().forEach((track) => track.stop());
+stream = null;
+elements.camera.srcObject = null;
+elements.restartCamera.disabled = !selectedCameraId;
+setLiveDetection(null);
+elements.detectionSnapshotWrap.classList.add("hidden");
+[
+elements.stopCamera,
+elements.analyzeNow,
+elements.toggleAuto,
+elements.captureCalibration,
+elements.captureKnownGood,
+].forEach((button) => { button.disabled = true; });
+}
+function setBeacon(status) {
+const colors = {
+standby: "#5e8fff",
+monitoring: "#4c7dff",
+analyzing: "#9d7bf0",
+normal: "#4bc98a",
+warning: "#e0a339",
+failure: "#e5566b",
+unclear: "#8a8f98",
+};
+const labels = {
+standby: "Standby",
+monitoring: "Monitoring",
+analyzing: "AI Analyzing",
+normal: "Healthy",
+warning: "Warning",
+failure: "Stop / Inspect",
+unclear: "Unclear",
+};
+const color = colors[status] || colors.unclear;
+elements.beacon.style.background = color;
+elements.beacon.style.boxShadow = `0 0 16px -2px ${color}, inset 0 0 10px rgba(0,0,0,.18)`;
+elements.beaconLabel.textContent = labels[status] || "Unclear";
+elements.beacon.classList.toggle("pulsing", status === "analyzing");
+}
+function updateMachineStatus(status, confidence = 0, reason = "") {
+if (!selectedCameraId) return;
+const normalized = ["printing", "needs_attention", "idle"].includes(status)
+? status
+: "needs_attention";
+const percentage = Math.max(0, Math.min(100, Math.round(Number(confidence || 0) * 100)));
+const label = machineStatusLabel(normalized);
+elements.activeMachineStatus.className = `machine-status-pill ${normalized}`;
+elements.activeMachineStatus.textContent = label;
+elements.machineStatusValue.textContent = formatText(normalized);
+elements.statusConfidence.textContent = `${percentage}%`;
+elements.statusConfidenceBar.style.width = `${percentage}%`;
+elements.machineStatusReason.textContent = reason || "The AI camera set this status automatically.";
+}
+function renderActivePalette() {
+if (!selectedCameraId) return;
+elements.activePalette.innerHTML = paletteHtml(stateFor(selectedCameraId).colors);
+}
+function showAnalyzing() {
+elements.resultCard.className = "analyzing";
+elements.resultStatus.textContent = "Analyzing";
+elements.machineStatusValue.textContent = "Analyzing";
+elements.statusConfidence.textContent = "—";
+elements.statusConfidenceBar.style.width = "0%";
+elements.sceneState.textContent = "—";
+elements.plateVisible.textContent = "—";
+elements.partVisible.textContent = "—";
+elements.failureType.textContent = "Waiting for AI";
+elements.confidence.textContent = "—";
+elements.confidenceBar.style.width = "0%";
+elements.severity.textContent = "—";
+elements.action.textContent = "Analyzing";
+elements.reason.textContent = "Examining the current frame.";
+elements.evidence.textContent = "—";
+elements.cause.textContent = "—";
+elements.nextStep.textContent = "—";
+elements.detectionSnapshotWrap.classList.add("hidden");
+elements.confirmationStatus.classList.add("hidden");
+setLiveDetection(null);
+setBeacon("analyzing");
+}
+function showError(message) {
+elements.resultCard.className = "unclear";
+elements.resultStatus.textContent = "Error";
+elements.sceneState.textContent = "Unknown";
+elements.plateVisible.textContent = "—";
+elements.partVisible.textContent = "—";
+elements.failureType.textContent = "Unknown";
+elements.confidence.textContent = "—";
+elements.confidenceBar.style.width = "0%";
+elements.severity.textContent = "—";
+elements.action.textContent = "Check system";
+elements.reason.textContent = message;
+elements.evidence.textContent = "—";
+elements.cause.textContent = "Unknown";
+elements.nextStep.textContent = "Check the server terminal for details.";
+if (selectedCameraId) {
+const state = stateFor(selectedCameraId);
+state.machineStatus = "needs_attention";
+state.statusConfidence = 0;
+state.machineStatusReason = "The analysis failed, so the camera result needs attention.";
+updateMachineStatus(state.machineStatus, state.statusConfidence, state.machineStatusReason);
+}
+setBeacon("unclear");
+}
+function displayResult(data) {
+const status = normalizeStatusValue(data.status);
+const confidence = Math.max(0, Math.min(100, Math.round(Number(data.confidence || 0) * 100)));
+const state = stateFor(selectedCameraId);
+state.machineStatus = data.machine_status || "needs_attention";
+state.statusConfidence = Number(data.status_confidence || 0);
+state.machineStatusReason = data.machine_status_reason || "The AI camera set this status automatically.";
+state.colors = Array.isArray(data.detected_colors) ? data.detected_colors : [];
+state.confirmedFailure = Boolean(data.confirmed_failure);
+if (data.failure_type && data.failure_type !== "none") state.lastFailureType = data.failure_type;
+elements.resultCard.className = status;
+elements.resultStatus.textContent = status;
+elements.sceneState.textContent = sceneStateLabel(data.scene_state);
+elements.plateVisible.textContent = data.build_plate_visible ? "Yes" : "No";
+elements.partVisible.textContent = data.printed_part_visible ? "Yes" : "No";
+elements.failureType.textContent = formatText(data.failure_type);
+elements.confidence.textContent = `${confidence}%`;
+elements.confidenceBar.style.width = `${confidence}%`;
+elements.severity.textContent = `${Number(data.severity || 0)}/10`;
+elements.action.textContent = formatText(data.recommended_action);
+elements.reason.textContent = data.reason || "No reason provided.";
+elements.evidence.textContent = data.evidence || "No evidence provided.";
+elements.cause.textContent = data.probable_cause || "Unknown";
+elements.nextStep.textContent = data.next_step || "Inspect the machine.";
+updateMachineStatus(state.machineStatus, state.statusConfidence, state.machineStatusReason);
+renderActivePalette();
+updateConfirmationStatus(data.confirmation_streak, data.confirmation_target, data.confirmed_failure);
+if (boxIsValid(data.failure_box)) {
+setLiveDetection(
+mapBoxToFullFrame(data.failure_box, state.crop),
+formatText(data.failure_type),
+detectionColorForStatus(status),
+);
+} else {
+setLiveDetection(null);
+}
+setBeacon(status);
+if (status === "failure") beep();
+}
+function beep() {
+try {
+const context = new AudioContext();
+const oscillator = context.createOscillator();
+const gain = context.createGain();
+oscillator.frequency.value = 760;
+gain.gain.value = 0.12;
+oscillator.connect(gain);
+gain.connect(context.destination);
+oscillator.start();
+setTimeout(() => {
+oscillator.stop();
+context.close();
+}, 500);
+} catch {
+}
+}
+function cssVar(name, fallback) {
+const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+return value || fallback;
+}
+function normalizeStatusValue(status) {
+return ["normal", "warning", "failure", "unclear"].includes(status) ? status : "unclear";
+}
+function detectionColorForStatus(status) {
+if (status === "failure") return cssVar("--failure", "#f5455c");
+if (status === "warning") return cssVar("--warning", "#f5a623");
+if (status === "unclear") return cssVar("--unclear", "#9ca3af");
+return cssVar("--normal", "#35d477");
+}
+function boxIsValid(box) {
+return Boolean(box && box.width > 0 && box.height > 0);
+}
+function loadImage(source) {
+return new Promise((resolve, reject) => {
+const image = new Image();
+image.onload = () => resolve(image);
+image.onerror = reject;
+image.src = source;
+});
+}
+function drawBoxOnContext(ctx, rect, label, color) {
+const canvasSize = Math.max(ctx.canvas.width, ctx.canvas.height);
+const lineWidth = Math.max(2, Math.round(canvasSize / 220));
+ctx.save();
+ctx.strokeStyle = color;
+ctx.lineWidth = lineWidth;
+ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+ctx.shadowBlur = 4;
+ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+if (label) {
+const fontSize = Math.max(12, Math.round(canvasSize / 34));
+ctx.font = `800 ${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
+const paddingX = Math.round(fontSize * 0.45);
+const paddingY = Math.round(fontSize * 0.32);
+const tagWidth = ctx.measureText(label).width + paddingX * 2;
+const tagHeight = fontSize + paddingY * 2;
+const tagY = rect.y - tagHeight >= 0 ? rect.y - tagHeight : rect.y;
+ctx.shadowBlur = 0;
+ctx.fillStyle = color;
+ctx.fillRect(rect.x, tagY, tagWidth, tagHeight);
+ctx.fillStyle = "#04070d";
+ctx.textBaseline = "middle";
+ctx.fillText(label, rect.x + paddingX, tagY + tagHeight / 2 + 1);
+}
+ctx.restore();
+}
+async function buildAnnotatedImage(dataUrl, box, label, color) {
+if (!dataUrl || !boxIsValid(box)) return null;
+const image = await loadImage(dataUrl);
+const canvas = document.createElement("canvas");
+canvas.width = image.naturalWidth;
+canvas.height = image.naturalHeight;
+const ctx = canvas.getContext("2d");
+ctx.drawImage(image, 0, 0);
+drawBoxOnContext(ctx, {
+x: box.x * canvas.width,
+y: box.y * canvas.height,
+w: box.width * canvas.width,
+h: box.height * canvas.height,
+}, label, color);
+return canvas.toDataURL("image/jpeg", 0.85);
+}
+async function updateDetectionSnapshot(dataUrl, box, label, color) {
+const annotated = await buildAnnotatedImage(dataUrl, box, label, color);
+if (!annotated) {
+elements.detectionSnapshotWrap.classList.add("hidden");
+elements.detectionSnapshot.removeAttribute("src");
+return null;
+}
+elements.detectionSnapshot.src = annotated;
+elements.detectionSnapshotWrap.classList.remove("hidden");
+return annotated;
+}
+function mapBoxToFullFrame(box, crop) {
+if (!crop) return box;
+return {
+x: crop.x + box.x * crop.w,
+y: crop.y + box.y * crop.h,
+width: box.width * crop.w,
+height: box.height * crop.h,
+};
+}
+function videoContentRect(video) {
+const videoWidth = video.videoWidth;
+const videoHeight = video.videoHeight;
+const clientWidth = video.clientWidth;
+const clientHeight = video.clientHeight;
+if (!videoWidth || !videoHeight || !clientWidth || !clientHeight) return null;
+const scale = Math.min(clientWidth / videoWidth, clientHeight / videoHeight);
+const renderWidth = videoWidth * scale;
+const renderHeight = videoHeight * scale;
+return {
+offsetX: (clientWidth - renderWidth) / 2,
+offsetY: (clientHeight - renderHeight) / 2,
+renderWidth,
+renderHeight,
+};
+}
+function resizeDetectionOverlay() {
+const canvas = elements.detectionOverlay;
+const width = elements.camera.clientWidth;
+const height = elements.camera.clientHeight;
+if (!width || !height) return;
+if (canvas.width !== width) canvas.width = width;
+if (canvas.height !== height) canvas.height = height;
+}
+function redrawLiveDetection() {
+const canvas = elements.detectionOverlay;
+const ctx = canvas.getContext("2d");
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+if (!currentDetection) return;
+const content = videoContentRect(elements.camera);
+if (!content) return;
+const { box, label, color } = currentDetection;
+drawBoxOnContext(ctx, {
+x: content.offsetX + box.x * content.renderWidth,
+y: content.offsetY + box.y * content.renderHeight,
+w: box.width * content.renderWidth,
+h: box.height * content.renderHeight,
+}, label, color);
+}
+function setLiveDetection(box, label, color) {
+currentDetection = boxIsValid(box) ? { box, label, color } : null;
+resizeDetectionOverlay();
+redrawLiveDetection();
+}
+function updateConfirmationStatus(streak = 0, target = confirmationTargetDefault, confirmed = false) {
+if (target) confirmationTargetDefault = target;
+const element = elements.confirmationStatus;
+if (confirmed) {
+element.textContent = `Confirmed after ${target} consecutive suspicious frames — notification and auto-pause triggered.`;
+element.classList.remove("hidden");
+element.classList.add("confirmed");
+} else if (streak > 0) {
+element.textContent = `Confirming: ${streak}/${target} consecutive suspicious frames before this counts as a confirmed failure.`;
+element.classList.remove("hidden");
+element.classList.remove("confirmed");
+} else {
+element.classList.add("hidden");
+element.classList.remove("confirmed");
+}
+}
+function showToast(message, tone = "normal") {
+const toast = document.createElement("div");
+toast.className = `toast toast-${tone}`;
+toast.textContent = message;
+document.body.appendChild(toast);
+requestAnimationFrame(() => toast.classList.add("visible"));
+setTimeout(() => {
+toast.classList.remove("visible");
+setTimeout(() => toast.remove(), 300);
+}, 6000);
+}
+function handleLiveMessage(message) {
+if (!message || message.type === "hello") return;
+if (message.type === "status_update" || message.type === "failure_confirmed") {
+const result = message.result || {};
+const state = stateFor(message.cameraId);
+state.machineStatus = result.machine_status || "needs_attention";
+state.statusConfidence = Number(result.status_confidence || 0);
+state.machineStatusReason = result.machine_status_reason || state.machineStatusReason;
+if (Array.isArray(result.detected_colors)) state.colors = result.detected_colors;
+state.confirmedFailure = Boolean(result.confirmed_failure);
+if (result.failure_type && result.failure_type !== "none") state.lastFailureType = result.failure_type;
+renderMonitors();
+if (selectedCameraId === message.cameraId) {
+updateMachineStatus(state.machineStatus, state.statusConfidence, state.machineStatusReason);
+renderActivePalette();
+updateConfirmationStatus(result.confirmation_streak, result.confirmation_target, result.confirmed_failure);
+}
+if (message.type === "failure_confirmed") {
+showToast(
+`🚨 Confirmed: ${formatText(result.failure_type)} on "${message.cameraLabel || message.cameraId}" ` +
+`(severity ${Number(result.severity || 0)}/10)`,
+"failure",
+);
+beep();
+}
+} else if (message.type === "printer_pause_result") {
+const label = message.cameraLabel || message.cameraId;
+if (message.outcome?.ok) {
+showToast(`⏸ Printer paused automatically for "${label}".`, "normal");
+} else if (!message.outcome?.skipped) {
+showToast(`⚠ Could not auto-pause the printer for "${label}".`, "warning");
+}
+}
+}
+function connectLiveSocket() {
+const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+liveSocket = new WebSocket(`${protocol}//${location.host}`);
+liveSocket.addEventListener("message", (event) => {
+try {
+handleLiveMessage(JSON.parse(event.data));
+} catch {
+}
+});
+liveSocket.addEventListener("close", () => {
+setTimeout(connectLiveSocket, 3000);
+});
+liveSocket.addEventListener("error", () => {
+liveSocket.close();
+});
+}
+function captureFullFrame(width = 320) {
+if (!elements.camera.videoWidth || !elements.camera.videoHeight) {
+throw new Error("Camera image is not ready.");
+}
+const canvas = document.createElement("canvas");
+const ratio = elements.camera.videoHeight / elements.camera.videoWidth;
+canvas.width = width;
+canvas.height = Math.round(width * ratio);
+canvas.getContext("2d").drawImage(elements.camera, 0, 0, canvas.width, canvas.height);
+return canvas;
+}
+function canvasToJpeg(canvas, quality = 0.4) {
+return canvas.toDataURL("image/jpeg", quality);
+}
+function cropCanvas(source, crop) {
+if (!crop) return source;
+const sourceX = Math.round(crop.x * source.width);
+const sourceY = Math.round(crop.y * source.height);
+const sourceWidth = Math.max(1, Math.round(crop.w * source.width));
+const sourceHeight = Math.max(1, Math.round(crop.h * source.height));
+const output = document.createElement("canvas");
+output.width = sourceWidth;
+output.height = sourceHeight;
+output.getContext("2d").drawImage(
+source,
+sourceX,
+sourceY,
+sourceWidth,
+sourceHeight,
+0,
+0,
+sourceWidth,
+sourceHeight,
+);
+return output;
+}
+function captureMonitoredFrame() {
+const state = stateFor(selectedCameraId);
+return canvasToJpeg(cropCanvas(captureFullFrame(), state.crop));
+}
+function updatePreview(image, empty, dataUrl) {
+if (dataUrl) {
+image.src = dataUrl;
+image.hidden = false;
+empty.hidden = true;
+} else {
+image.removeAttribute("src");
+image.hidden = true;
+empty.hidden = false;
+}
+}
+function loadReferences() {
+const state = stateFor(selectedCameraId);
+updatePreview(elements.emptyReferencePreview, elements.emptyReferenceEmpty, state.emptyReference);
+updatePreview(elements.expectedReferencePreview, elements.expectedReferenceEmpty, state.expectedReference);
+updatePreview(elements.previousReferencePreview, elements.previousReferenceEmpty, state.previousFrame);
+elements.clearEmptyReference.disabled = !state.emptyReference;
+elements.clearExpectedReference.disabled = !state.expectedReference;
+elements.clearPreviousReference.disabled = !state.previousFrame;
+}
+async function createThumbnail(dataUrl, maximumWidth = 300) {
+const image = await new Promise((resolve, reject) => {
+const temporary = new Image();
+temporary.onload = () => resolve(temporary);
+temporary.onerror = reject;
+temporary.src = dataUrl;
+});
+const width = Math.min(maximumWidth, image.naturalWidth);
+const height = Math.round(width * image.naturalHeight / image.naturalWidth);
+const canvas = document.createElement("canvas");
+canvas.width = width;
+canvas.height = height;
+canvas.getContext("2d").drawImage(image, 0, 0, width, height);
+return canvas.toDataURL("image/jpeg", 0.55);
+}
+async function postAnalyze(payload) {
+const response = await fetch("/api/analyze-machine", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(payload),
+});
+const data = await response.json().catch(() => ({}));
+return { response, data };
+}
+async function analyze(source = "manual camera check") {
+if (analyzing || !stream || !selectedMachineType) return;
+analyzing = true;
+elements.analyzeNow.disabled = true;
+showAnalyzing();
+elements.message.textContent = "Sending the frame to Vision OPS AI…";
+try {
+const state = stateFor(selectedCameraId);
+const profile = cameraProfiles[selectedCameraId] || {};
+const currentImage = captureMonitoredFrame();
+const basePayload = {
+currentImageDataUrl: currentImage,
+machineType: selectedMachineType,
+cameraId: selectedCameraId,
+cameraLabel: profile.customName || "",
+jobContext: { cameraName: profile.customName || "" },
+};
+const hasReferenceImages = Boolean(
+state.emptyReference || state.expectedReference || state.previousFrame,
+);
+let { response, data } = await postAnalyze({
+...basePayload,
+emptyPlateReferenceDataUrl: state.emptyReference,
+expectedPartReferenceDataUrl: state.expectedReference,
+previousImageDataUrl: state.previousFrame,
+});
+let usedReferenceImages = true;
+if (!response.ok && response.status === 413 && hasReferenceImages) {
+// Groq's per-request token cap (not a rate limit — retrying later won't
+// help) was exceeded by sending a reference/previous-frame image
+// alongside the current frame. Immediately retry with just the current
+// frame, which is a deterministic fix rather than a timing-based one.
+console.warn("Vision OPS: request too large with reference images; retrying with only the current frame.");
+usedReferenceImages = false;
+({ response, data } = await postAnalyze(basePayload));
+}
+if (!response.ok) {
+console.error("Analyze request failed:", data);
+if (data.code === "missing_api_key") {
+showSetup();
+throw new Error("Add your Groq API key to start analyzing frames.");
+}
+if (response.status === 401) {
+showSetup();
+throw new Error("Groq rejected that API key. Enter a new one to continue.");
+}
+if (response.status === 429) {
+scheduleAutoRecovery();
+throw new Error("Groq token/rate limit reached. Vision OPS will save your session and refresh automatically to recover.");
+}
+if (response.status === 413) {
+throw new Error("Even a single frame is too large for the current Groq rate limit. Try again shortly, or crop a smaller build-plate region in Calibrate.");
+}
+if (data.code === "invalid_json") {
+throw new Error("The AI response was unreadable after two attempts. Click Analyze Now to retry, or wait for the next automatic check.");
+}
+throw new Error([data.error, data.details].filter(Boolean).join(" — ") || "Analysis request failed.");
+}
+displayResult(data);
+rateLimitRetryCount = 0;
+const annotatedImage = await updateDetectionSnapshot(
+currentImage,
+data.failure_box,
+formatText(data.failure_type),
+detectionColorForStatus(normalizeStatusValue(data.status)),
+);
+recordEvent(data, await createThumbnail(annotatedImage || currentImage), source);
+state.previousFrame = currentImage;
+updatePreview(
+elements.previousReferencePreview,
+elements.previousReferenceEmpty,
+state.previousFrame,
+);
+elements.clearPreviousReference.disabled = false;
+elements.message.textContent = usedReferenceImages
+? "Analysis completed successfully. Machine status updated automatically."
+: "Analysis completed, but reference images had to be skipped for this check (request was too large with them included).";
+} catch (error) {
+console.error(error);
+showError(error.message || "The image could not be analyzed.");
+elements.message.textContent = "Analysis failed.";
+} finally {
+analyzing = false;
+elements.analyzeNow.disabled = !stream;
+}
+}
+function stopAuto(updateMessage = true) {
+if (autoTimer) clearInterval(autoTimer);
+autoTimer = null;
+elements.toggleAuto.textContent = "Start Auto Monitoring";
+elements.toggleAuto.className = "primary";
+if (updateMessage) elements.message.textContent = "Automatic monitoring stopped.";
+}
+function toggleAuto() {
+if (autoTimer) {
+stopAuto();
+return;
+}
+if (!stream) return;
+autoTimer = setInterval(
+() => analyze("automatic camera check"),
+Number(elements.autoInterval.value),
+);
+elements.toggleAuto.textContent = "Stop Auto Monitoring";
+elements.toggleAuto.className = "danger";
+elements.message.textContent = "Automatic monitoring started. Status will update after each analysis.";
+analyze("automatic camera check");
+}
+function redrawCalibration() {
+if (!calibrationImage || !selectedCameraId) return;
+const state = stateFor(selectedCameraId);
+const canvas = elements.calibrationCanvas;
+const context = canvas.getContext("2d");
+context.clearRect(0, 0, canvas.width, canvas.height);
+context.drawImage(calibrationImage, 0, 0, canvas.width, canvas.height);
+if (state.crop) {
+const x = state.crop.x * canvas.width;
+const y = state.crop.y * canvas.height;
+const width = state.crop.w * canvas.width;
+const height = state.crop.h * canvas.height;
+context.fillStyle = "rgba(53,212,119,.12)";
+context.strokeStyle = "#35d477";
+context.lineWidth = Math.max(3, canvas.width / 250);
+context.fillRect(x, y, width, height);
+context.strokeRect(x, y, width, height);
+}
+}
+function pointerPosition(event) {
+const rectangle = elements.calibrationCanvas.getBoundingClientRect();
+return {
+x: Math.max(0, Math.min(
+elements.calibrationCanvas.width,
+(event.clientX - rectangle.left) * elements.calibrationCanvas.width / rectangle.width,
+)),
+y: Math.max(0, Math.min(
+elements.calibrationCanvas.height,
+(event.clientY - rectangle.top) * elements.calibrationCanvas.height / rectangle.height,
+)),
+};
+}
+async function captureCalibration() {
+try {
+const canvas = captureFullFrame();
+calibrationImage = new Image();
+await new Promise((resolve, reject) => {
+calibrationImage.onload = resolve;
+calibrationImage.onerror = reject;
+calibrationImage.src = canvasToJpeg(canvas);
+});
+elements.calibrationCanvas.width = canvas.width;
+elements.calibrationCanvas.height = canvas.height;
+elements.calibrationCanvas.style.display = "block";
+elements.calibrationPlaceholder.classList.add("hidden");
+stateFor(selectedCameraId).crop = null;
+redrawCalibration();
+elements.clearCalibration.disabled = false;
+elements.setEmptyReference.disabled = false;
+elements.calibrationStatus.textContent =
+"Drag a green rectangle around the build plate, or save the full frame.";
+} catch (error) {
+elements.calibrationStatus.textContent = error.message;
+}
+}
+function setEmptyReference() {
+if (!calibrationImage || !selectedCameraId) return;
+const source = document.createElement("canvas");
+source.width = calibrationImage.naturalWidth;
+source.height = calibrationImage.naturalHeight;
+source.getContext("2d").drawImage(calibrationImage, 0, 0);
+const state = stateFor(selectedCameraId);
+state.emptyReference = canvasToJpeg(cropCanvas(source, state.crop));
+updatePreview(
+elements.emptyReferencePreview,
+elements.emptyReferenceEmpty,
+state.emptyReference,
+);
+elements.clearEmptyReference.disabled = false;
+elements.calibrationStatus.textContent = state.crop
+? "Empty reference saved from the green rectangle."
+: "Empty reference saved from the full frame.";
+}
+async function resizeUpload(file, maximumWidth = 384) {
+const dataUrl = await new Promise((resolve, reject) => {
+const reader = new FileReader();
+reader.onload = () => resolve(String(reader.result));
+reader.onerror = reject;
+reader.readAsDataURL(file);
+});
+const image = await new Promise((resolve, reject) => {
+const uploaded = new Image();
+uploaded.onload = () => resolve(uploaded);
+uploaded.onerror = reject;
+uploaded.src = dataUrl;
+});
+const width = Math.min(maximumWidth, image.naturalWidth);
+const height = Math.round(width * image.naturalHeight / image.naturalWidth);
+const canvas = document.createElement("canvas");
+canvas.width = width;
+canvas.height = height;
+canvas.getContext("2d").drawImage(image, 0, 0, width, height);
+return canvasToJpeg(canvas);
+}
+function recordEvent(data, image, source) {
+const state = stateFor(selectedCameraId);
+state.events.unshift({
+id: crypto.randomUUID?.() || String(Date.now()),
+timestamp: new Date().toISOString(),
+source,
+image,
+data,
+feedback: null,
+machineType: selectedMachineType,
+});
+state.events = state.events.slice(0, MAX_EVENTS_PER_CAMERA);
+renderHistory();
+renderMonitors();
+}
+function renderHistory() {
+if (!selectedCameraId) return;
+const events = stateFor(selectedCameraId).events;
+elements.historyCount.textContent = `${events.length} event${events.length === 1 ? "" : "s"}`;
+elements.downloadReport.disabled = events.length === 0;
+elements.clearHistory.disabled = events.length === 0;
+if (events.length === 0) {
+elements.historyList.innerHTML = '<div class="help">No events recorded for this camera.</div>';
+return;
+}
+elements.historyList.innerHTML = events.map((event) => `
+<article class="event ${escapeHtml(event.data.status)}">
+<img src="${event.image}" alt="Monitoring snapshot" loading="lazy" />
+<div>
+<h3>${escapeHtml(machineStatusLabel(event.data.machine_status))}</h3>
+<p><strong>AI result:</strong> <span class="mono">${escapeHtml(event.data.status.toUpperCase())}</span></p>
+<p><strong>Colors:</strong> <span class="mono">${event.data.detected_colors?.length
+? escapeHtml(event.data.detected_colors.map((color) => `${color.name} ${color.hex}`).join(", "))
+: "None detected"}</span></p>
+<p><strong>Time:</strong> <span class="mono">${escapeHtml(new Date(event.timestamp).toLocaleString())}</span></p>
+<p><strong>Failure:</strong> <span class="mono">${escapeHtml(formatText(event.data.failure_type))}</span></p>
+<p><strong>Reason:</strong> ${escapeHtml(event.data.reason || "Unknown")}</p>
+<div class="feedback">
+<button class="success" data-feedback="correct" data-event-id="${escapeHtml(event.id)}">Correct</button>
+<button class="danger" data-feedback="incorrect" data-event-id="${escapeHtml(event.id)}">Incorrect</button>
+</div>
+<p><strong>Feedback:</strong> ${escapeHtml(event.feedback || "not rated")}</p>
+</div>
+</article>
+`).join("");
+elements.historyList.querySelectorAll("[data-feedback]").forEach((button) => {
+button.addEventListener("click", () => {
+const event = stateFor(selectedCameraId).events.find(
+(item) => item.id === button.dataset.eventId,
+);
+if (event) {
+event.feedback = button.dataset.feedback;
+renderHistory();
+renderMonitors();
+}
+});
+});
+}
+function clearHistory() {
+if (!selectedCameraId) return;
+const state = stateFor(selectedCameraId);
+if (state.events.length === 0) return;
+if (!confirm("Clear the event history for this camera?")) return;
+state.events = [];
+renderHistory();
+renderMonitors();
+}
+function downloadReport() {
+if (!selectedCameraId) return;
+const state = stateFor(selectedCameraId);
+if (state.events.length === 0) return;
+const profile = cameraProfiles[selectedCameraId] || {};
+const rows = [...state.events].reverse().map((event) => `
+<tr>
+<td>${escapeHtml(new Date(event.timestamp).toLocaleString())}</td>
+<td>${escapeHtml(machineStatusLabel(event.data.machine_status))}</td>
+<td>${escapeHtml(event.data.status)}</td>
+<td>${escapeHtml(event.data.failure_type)}</td>
+<td>${escapeHtml(event.data.detected_colors?.map((color) => `${color.name} ${color.hex}`).join(", ") || "")}</td>
+<td>${Math.round(Number(event.data.confidence || 0) * 100)}%</td>
+<td>${escapeHtml(event.data.reason || "")}</td>
+<td>${escapeHtml(event.feedback || "")}</td>
+</tr>
+`).join("");
+const report = `
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Vision OPS Report</title>
+<style>
+body { font-family: Arial; margin: 32px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 8px; text-align: left; vertical-align: top; }
+th { background: #eee; }
+</style>
+</head>
+<body>
+<h1>Vision OPS Camera Report</h1>
+<p><b>Camera:</b> ${escapeHtml(profile.customName || "Camera")}</p>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Machine Status</th>
+<th>AI Result</th>
+<th>Failure</th>
+<th>Detected Colors</th>
+<th>Confidence</th>
+<th>Reason</th>
+<th>Feedback</th>
+</tr>
+</thead>
+<tbody>${rows}</tbody>
+</table>
+</body>
+</html>
+`;
+const url = URL.createObjectURL(new Blob([report], { type: "text/html;charset=utf-8" }));
+const link = document.createElement("a");
+link.href = url;
+link.download = "Vision-OPS-camera-report.html";
+link.click();
+setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+const THEME_KEY = "visionOpsTheme";
+function applyTheme(theme) {
+if (theme === "dark") {
+document.documentElement.removeAttribute("data-theme");
+} else {
+document.documentElement.setAttribute("data-theme", theme);
+}
+localStorage.setItem(THEME_KEY, theme);
+}
+elements.themeSelect.value = localStorage.getItem(THEME_KEY) || "dark";
+elements.themeSelect.addEventListener("change", () => applyTheme(elements.themeSelect.value));
+document.querySelectorAll(".nav-button").forEach((button) => {
+button.addEventListener("click", () => showView(button.dataset.view));
+});
+document.querySelectorAll(".category-tab").forEach((button) => {
+button.addEventListener("click", () => {
+currentCategory = button.dataset.category;
+document.querySelectorAll(".category-tab").forEach((tab) => {
+tab.classList.toggle("active", tab === button);
+});
+renderMonitors();
+});
+});
+[elements.scanHeader, elements.scanPage, elements.scanEmpty].forEach((button) => {
+button.addEventListener("click", scanCameras);
+});
+elements.addWarehouseBlock.addEventListener("click", addWarehouseBlock);
+elements.clearWarehouseLayout.addEventListener("click", clearWarehouseLayout);
+elements.backButton.addEventListener("click", () => showView("monitors"));
+elements.restartCamera.addEventListener("click", startCamera);
+elements.stopCamera.addEventListener("click", () => {
+stopAuto(false);
+stopStream();
+setBeacon("standby");
+elements.message.textContent = "Camera stopped.";
+});
+elements.analyzeNow.addEventListener("click", () => analyze());
+elements.toggleAuto.addEventListener("click", toggleAuto);
+elements.autoInterval.addEventListener("change", () => {
+  if (autoTimer) {
+    clearInterval(autoTimer);
+    autoTimer = setInterval(() => analyze("automatic camera check"), Number(elements.autoInterval.value));
+  }
+});
+elements.downloadReport.addEventListener("click", downloadReport);
+elements.clearHistory.addEventListener("click", clearHistory);
+elements.captureCalibration.addEventListener("click", captureCalibration);
+elements.clearCalibration.addEventListener("click", () => {
+stateFor(selectedCameraId).crop = null;
+redrawCalibration();
+elements.calibrationStatus.textContent = "Rectangle cleared.";
+});
+elements.setEmptyReference.addEventListener("click", setEmptyReference);
+elements.clearEmptyReference.addEventListener("click", () => {
+const state = stateFor(selectedCameraId);
+state.emptyReference = null;
+updatePreview(elements.emptyReferencePreview, elements.emptyReferenceEmpty, null);
+elements.clearEmptyReference.disabled = true;
+});
+elements.captureKnownGood.addEventListener("click", () => {
+try {
+const state = stateFor(selectedCameraId);
+state.expectedReference = captureMonitoredFrame();
+updatePreview(
+elements.expectedReferencePreview,
+elements.expectedReferenceEmpty,
+state.expectedReference,
+);
+elements.clearExpectedReference.disabled = false;
+elements.message.textContent = "Known-good reference captured.";
+} catch (error) {
+showError(error.message);
+}
+});
+elements.clearExpectedReference.addEventListener("click", () => {
+const state = stateFor(selectedCameraId);
+state.expectedReference = null;
+updatePreview(elements.expectedReferencePreview, elements.expectedReferenceEmpty, null);
+elements.clearExpectedReference.disabled = true;
+elements.expectedUpload.value = "";
+});
+elements.expectedUpload.addEventListener("change", async () => {
+const file = elements.expectedUpload.files?.[0];
+if (!file || !selectedCameraId) return;
+try {
+const state = stateFor(selectedCameraId);
+state.expectedReference = await resizeUpload(file);
+updatePreview(
+elements.expectedReferencePreview,
+elements.expectedReferenceEmpty,
+state.expectedReference,
+);
+elements.clearExpectedReference.disabled = false;
+elements.message.textContent = `Reference loaded: ${file.name}`;
+} catch {
+showError("The uploaded image could not be read.");
+}
+});
+elements.clearPreviousReference.addEventListener("click", () => {
+const state = stateFor(selectedCameraId);
+state.previousFrame = null;
+updatePreview(elements.previousReferencePreview, elements.previousReferenceEmpty, null);
+elements.clearPreviousReference.disabled = true;
+});
+elements.calibrationCanvas.addEventListener("pointerdown", (event) => {
+if (!calibrationImage || !selectedCameraId) return;
+elements.calibrationCanvas.setPointerCapture(event.pointerId);
+dragStart = pointerPosition(event);
+});
+elements.calibrationCanvas.addEventListener("pointermove", (event) => {
+if (!dragStart || !selectedCameraId) return;
+const point = pointerPosition(event);
+const x = Math.min(dragStart.x, point.x);
+const y = Math.min(dragStart.y, point.y);
+const width = Math.abs(point.x - dragStart.x);
+const height = Math.abs(point.y - dragStart.y);
+stateFor(selectedCameraId).crop = {
+x: x / elements.calibrationCanvas.width,
+y: y / elements.calibrationCanvas.height,
+w: width / elements.calibrationCanvas.width,
+h: height / elements.calibrationCanvas.height,
+};
+redrawCalibration();
+});
+elements.calibrationCanvas.addEventListener("pointerup", () => {
+if (!selectedCameraId) return;
+dragStart = null;
+const state = stateFor(selectedCameraId);
+if (state.crop && state.crop.w > 0.04 && state.crop.h > 0.04) {
+elements.calibrationStatus.textContent =
+"Green build-plate rectangle selected. Press Set Empty Reference.";
+} else {
+state.crop = null;
+redrawCalibration();
+elements.calibrationStatus.textContent = "The rectangle was too small. Drag again.";
+}
+});
+elements.cancelRename.addEventListener("click", closeRename);
+elements.saveRename.addEventListener("click", saveRename);
+elements.renameInput.addEventListener("keydown", (event) => {
+if (event.key === "Enter") saveRename();
+if (event.key === "Escape") closeRename();
+});
+elements.renameModal.addEventListener("click", (event) => {
+if (event.target === elements.renameModal) closeRename();
+});
+elements.camera.addEventListener("loadedmetadata", () => {
+resizeDetectionOverlay();
+redrawLiveDetection();
+});
+new ResizeObserver(() => {
+resizeDetectionOverlay();
+redrawLiveDetection();
+}).observe(elements.camera);
+// Save state on any refresh/close (manual F5 included), not just the
+// automatic rate-limit recovery reload, so a session never just disappears.
+window.addEventListener("beforeunload", () => saveSessionState());
+renderMonitors();
+setBeacon("standby");
+connectLiveSocket();
+resumeSessionIfAvailable();
+</script>
+</body>
+</html>

@@ -4,6 +4,13 @@ import path from "path";
 import express from "express";
 import Groq from "groq-sdk";
 import { WebSocketServer } from "ws";
+import {
+alertStatus,
+isValidDiscordWebhook,
+isValidPhoneNumber,
+normalizePhoneNumber,
+sendAlert,
+} from "./notify.mjs";
 const app = express();
 const port = Number(process.env.PORT || 3001);
 const DEFAULT_MODEL = "qwen/qwen3.6-27b";
@@ -99,6 +106,98 @@ console.error("Failed to save API key:", error);
 response.status(500).json({ error: "The key could not be saved on the server." });
 }
 });
+app.get("/api/alerts", (_request, response) => {
+response.json(alertStatus());
+});
+
+// Saves alert settings the same way /api/config saves the Groq key: into
+// process.env for the running server and into .env so they survive a restart.
+// Any field may be omitted to leave it alone, or sent as "" to clear it.
+app.post("/api/alerts", (request, response) => {
+const body = request.body ?? {};
+const updates = {};
+const errors = [];
+const setIfPresent = (field, envKey, transform = (value) => value) => {
+if (body[field] === undefined) return;
+const value = transform(clean(body[field], 300));
+updates[envKey] = value;
+};
+if (body.discordWebhookUrl !== undefined) {
+const webhook = clean(body.discordWebhookUrl, 300);
+if (webhook && !isValidDiscordWebhook(webhook)) {
+errors.push(
+"That doesn't look like a Discord webhook URL (expected https://discord.com/api/webhooks/...).",
+);
+}
+updates.DISCORD_WEBHOOK_URL = webhook;
+}
+if (body.phoneNumber !== undefined) {
+const phone = clean(body.phoneNumber, 40);
+const normalized = phone ? normalizePhoneNumber(phone) : "";
+if (normalized && !isValidPhoneNumber(normalized)) {
+errors.push("That phone number isn't valid. Use a full number with country code, e.g. +15551234567.");
+}
+updates.ALERT_PHONE_NUMBER = normalized;
+}
+setIfPresent("twilioAccountSid", "TWILIO_ACCOUNT_SID");
+setIfPresent("twilioAuthToken", "TWILIO_AUTH_TOKEN");
+setIfPresent("twilioFromNumber", "TWILIO_FROM_NUMBER", (value) =>
+value ? normalizePhoneNumber(value) : "",
+);
+setIfPresent("twilioMessagingServiceSid", "TWILIO_MESSAGING_SERVICE_SID");
+if (body.channels !== undefined) {
+const channels = clean(body.channels, 20).toLowerCase();
+if (!["auto", "discord", "sms", "text", "both", "all", ""].includes(channels)) {
+errors.push('channels must be one of: auto, discord, sms, both.');
+} else {
+updates.ALERT_CHANNELS = channels || "auto";
+}
+}
+if (body.cooldownMinutes !== undefined) {
+const minutes = clamp(body.cooldownMinutes, 0, 240, 5);
+updates.ALERT_COOLDOWN_MS = String(Math.round(minutes * 60_000));
+}
+if (body.alertOnErrors !== undefined) {
+updates.ALERT_ON_ERRORS = body.alertOnErrors === false ? "false" : "true";
+}
+if (errors.length > 0) return response.status(400).json({ error: errors.join(" ") });
+if (Object.keys(updates).length === 0) {
+return response.status(400).json({ error: "No alert settings were provided." });
+}
+try {
+Object.assign(process.env, updates);
+upsertEnvFile(updates);
+console.log(`Alert settings updated: ${Object.keys(updates).join(", ")}`);
+response.json({ ok: true, ...alertStatus() });
+} catch (error) {
+console.error("Failed to save alert settings:", error);
+response.status(500).json({ error: "The alert settings could not be saved on the server." });
+}
+});
+
+// Sends a real message through every configured channel so you can confirm the
+// wiring works before trusting it with an overnight print.
+app.post("/api/alerts/test", async (_request, response) => {
+const status = alertStatus();
+if (!status.discord.configured && !status.sms.configured) {
+return response.status(400).json({
+error: "No alert channel is configured yet. Add a Discord webhook URL or Twilio SMS credentials first.",
+});
+}
+const outcome = await sendAlert({
+title: "✅ Vision OPS test alert",
+body: "Alerts are wired up correctly. Real notifications will look like this.",
+severity: "info",
+fields: [{ name: "Model", value: model }],
+force: true,
+});
+response.status(outcome.sent ? 200 : 502).json({
+ok: outcome.sent,
+results: outcome.results,
+...(outcome.sent ? {} : { error: "No channel accepted the test message. See the details below." }),
+});
+});
+
 function isImage(value) {
 return typeof value === "string" && value.startsWith("data:image/");
 }
@@ -567,24 +666,41 @@ for (const client of wss.clients) {
 if (client.readyState === client.OPEN) client.send(payload);
 }
 }
-async function notifyDiscord(text) {
-const url = process.env.DISCORD_WEBHOOK_URL;
-if (!url) {
-console.log("DISCORD_WEBHOOK_URL not set; skipping failure notification.");
-return;
-}
-try {
-const response = await fetch(url, {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ content: text.slice(0, 1900) }),
+// Fired when a failure has survived CONFIRMATION_STREAK consecutive frames, so
+// this is a real problem rather than one bad guess from a single image.
+function notifyFailureConfirmed({ cameraLabel, cameraId, result }) {
+return sendAlert({
+title: `🚨 ${cameraLabel}: ${result.failure_type.replace(/_/g, " ")}`,
+body: `${result.reason} ${result.next_step}`.trim(),
+severity: result.severity >= 7 ? "critical" : "warning",
+fields: [
+{ name: "Severity", value: `${result.severity}/10` },
+{ name: "Confidence", value: `${Math.round(result.confidence * 100)}%` },
+{ name: "Action", value: result.recommended_action.replace(/_/g, " ") },
+{ name: "Evidence", value: result.evidence, inline: false, sms: false },
+{ name: "Probable cause", value: result.probable_cause, inline: false, sms: false },
+],
+// One text per camera per failure type, not one per confirming frame.
+dedupeKey: `failure:${cameraId}:${result.failure_type}`,
+}).catch((alertError) => {
+console.error("Failure alert threw:", alertError);
 });
-if (!response.ok) {
-console.error(`Discord webhook responded with ${response.status}.`);
 }
-} catch (webhookError) {
-console.error("Discord webhook failed:", webhookError.message);
-}
+
+// Fired when the monitoring pipeline itself breaks — a rejected API key, a
+// Groq outage, unparseable model output, a failed auto-pause. Without this the
+// app can silently stop watching a running print.
+function notifyError({ title, body, dedupeKey, fields = [] }) {
+if (String(process.env.ALERT_ON_ERRORS ?? "").toLowerCase() === "false") return;
+return sendAlert({
+title: `⚠️ Vision OPS error: ${title}`,
+body,
+severity: "critical",
+fields,
+dedupeKey,
+}).catch((alertError) => {
+console.error("Error alert threw:", alertError);
+});
 }
 const printerDrivers = {
 none: {
@@ -781,18 +897,36 @@ response.json(payload);
 broadcast({ type: "status_update", cameraId, cameraLabel, result: payload });
 if (confirmation.newly_confirmed) {
 console.log(`Confirmed failure on "${cameraLabel}": ${normalized.failure_type}`);
-notifyDiscord(
-`🚨 Vision OPS: "${cameraLabel}" confirmed ${normalized.failure_type} ` +
-`(severity ${normalized.severity}/10). ${normalized.reason}`,
-);
+notifyFailureConfirmed({ cameraLabel, cameraId, result: normalized });
 pausePrinter().then((outcome) => {
 console.log(`Printer pause attempt for "${cameraLabel}":`, outcome);
 broadcast({ type: "printer_pause_result", cameraId, cameraLabel, outcome });
+// A configured driver that fails to pause is worth a second message: the
+// print is still running and nobody stopped it.
+if (!outcome.ok && !outcome.skipped) {
+notifyError({
+title: "auto-pause failed",
+body: `Could not pause "${cameraLabel}" after a confirmed ${normalized.failure_type}. Stop the machine by hand.`,
+dedupeKey: `pause-failed:${cameraId}`,
+fields: [
+{ name: "Driver", value: process.env.PRINTER_DRIVER || "none" },
+{ name: "Detail", value: outcome.reason || outcome.error || `status ${outcome.status}` },
+],
+});
+}
 });
 broadcast({ type: "failure_confirmed", cameraId, cameraLabel, result: payload });
 }
 } catch (error) {
+// `cameraLabel` is scoped inside the try block, so re-derive a label here.
+const failedCamera = clean(request.body?.cameraLabel, 100) || clean(request.body?.cameraId, 200) || "default";
 if (error?.invalidJson) {
+notifyError({
+title: "unreadable model output",
+body: `${model} returned text that was not valid JSON while analyzing "${failedCamera}". Monitoring for that camera is not producing results.`,
+dedupeKey: `error:invalid_json:${failedCamera}`,
+fields: [{ name: "Model", value: model }],
+});
 return response.status(502).json({
 error: "Groq returned text that was not valid JSON.",
 code: "invalid_json",
@@ -819,8 +953,21 @@ const messages = {
 502: "Groq returned an invalid response.",
 503: "Groq is temporarily unavailable.",
 };
+const summary = messages[status] || `Groq request failed with status ${status}.`;
+notifyError({
+title: `analysis failed (${status})`,
+body: `${summary} Camera "${failedCamera}" is not being monitored until this is fixed.`,
+// One alert per status code per camera per cooldown — a 429 storm during
+// auto-monitoring must not turn into a text per frame.
+dedupeKey: `error:${status}:${failedCamera}`,
+fields: [
+{ name: "Status", value: String(status) },
+{ name: "Model", value: model },
+{ name: "Detail", value: String(details).slice(0, 200), inline: false, sms: false },
+],
+});
 response.status(status).json({
-error: messages[status] || `Groq request failed with status ${status}.`,
+error: summary,
 details,
 });
 }
@@ -837,4 +984,37 @@ groq
 wss = new WebSocketServer({ server });
 wss.on("connection", (socket) => {
 socket.send(JSON.stringify({ type: "hello", message: "Connected to Vision OPS live updates." }));
+});
+
+const alerts = alertStatus();
+console.log(
+[
+`Alerts — Discord: ${alerts.discord.configured ? "on" : "off"}`,
+`SMS: ${alerts.sms.configured ? `on (${alerts.sms.toNumber})` : "off"}`,
+`errors: ${alerts.alertOnErrors ? "on" : "off"}`,
+].join(", ") +
+(alerts.discord.configured || alerts.sms.configured
+? ""
+: " — set DISCORD_WEBHOOK_URL or the TWILIO_* keys to get notified of failures."),
+);
+
+// Last line of defence: if the process is about to die, get one message out
+// before it does — the send is awaited so the HTTP request finishes before the
+// exit call tears the process down.
+process.on("uncaughtException", async (error) => {
+console.error("UNCAUGHT EXCEPTION:", error);
+await notifyError({
+title: "server crashed",
+body: `Vision OPS stopped with an uncaught exception: ${error?.message || error}. Monitoring has stopped.`,
+dedupeKey: "error:uncaught",
+});
+process.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+console.error("UNHANDLED REJECTION:", reason);
+notifyError({
+title: "unhandled rejection",
+body: `Vision OPS hit an unhandled rejection: ${reason?.message || reason}.`,
+dedupeKey: "error:unhandled-rejection",
+});
 });

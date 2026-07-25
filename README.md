@@ -47,3 +47,71 @@ d) Ctrl/CMD+S to save the .env file
 
    <img width="803" height="56" alt="image" src="https://github.com/user-attachments/assets/585e7262-8ec1-4169-ad27-5afb8e9f3bf3" />
 
+
+----------------------------------------------------------------
+## Alerts
+
+Vision OPS can message you on Discord when something goes wrong, so you do not
+have to watch the camera feed. Nothing is sent until you configure a channel.
+
+### What triggers a message
+
+| Trigger | When it fires |
+| --- | --- |
+| Confirmed print failure | A camera reports `needs_attention` for `CONFIRMATION_STREAK` frames in a row (default 3). One bad frame never alerts. |
+| Analysis failure | Groq rejects the API key, rate-limits, times out, or is down, so monitoring has effectively stopped. |
+| Unreadable model output | The model returned text that was not valid JSON after retrying. |
+| Auto-pause failure | A confirmed failure happened, but the configured printer driver could not pause the machine. |
+| Server crash | An uncaught exception or unhandled rejection. |
+
+Everything except confirmed failures can be turned off with `ALERT_ON_ERRORS=false`.
+
+Repeats of the same alert are suppressed for `ALERT_COOLDOWN_MS` (default 5
+minutes), keyed by camera and failure type, so a stuck camera cannot send one
+message per frame.
+
+### Setting up Discord
+
+1. In your Discord server, open **Server Settings > Integrations > Webhooks > New Webhook**.
+2. Pick the channel you want alerts in, then click **Copy Webhook URL**.
+3. Paste it into the `.env` file:
+
+```
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+ALERT_CHANNELS=discord
+```
+
+4. Save the file and restart the server.
+
+### Checking it works
+
+With the server running, send a real test message:
+
+```
+curl -X POST http://localhost:3001/api/alerts/test
+```
+
+It returns per-channel results, so a rejected webhook tells you exactly why.
+
+### Texting your phone instead (optional)
+
+SMS is supported through [Twilio](https://www.twilio.com/) if you would rather
+get a text than a Discord message. Add your Account SID, Auth Token, and a
+Twilio number to `.env` as `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
+`TWILIO_FROM_NUMBER`, and your own number as `ALERT_PHONE_NUMBER`, then set
+`ALERT_CHANNELS=auto` to use both channels. On a Twilio trial account your own
+number must be verified first. See `.env.example` for every setting.
+
+### Alert API
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/alerts` | Current alert configuration. Credentials are never returned and the phone number comes back masked. |
+| `POST /api/alerts` | Update settings at runtime and save them to `.env`. |
+| `POST /api/alerts/test` | Send a test alert on every configured channel. |
+
+### A note on .env
+
+`.env` is no longer tracked by git, because it holds your Groq API key and your
+Discord webhook URL and this repository is public. Anyone cloning the project
+should copy `.env.example` to `.env` and fill in their own values.

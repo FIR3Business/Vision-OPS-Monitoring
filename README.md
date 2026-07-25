@@ -43,5 +43,10 @@ d) Ctrl/CMD+S to save the .env file
    
 7. Type "npm start" as seen above
 
+8. Enter in: "http://localhost:3001/" in your browser
+
+   <img width="803" height="56" alt="image" src="https://github.com/user-attachments/assets/585e7262-8ec1-4169-ad27-5afb8e9f3bf3" />
+
+9. 
 
 

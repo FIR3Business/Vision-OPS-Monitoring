@@ -27,6 +27,24 @@ let groq = process.env.GROQ_API_KEY
 ? new Groq({ apiKey: process.env.GROQ_API_KEY })
 : null;
 const requestTimeoutMs = Number(process.env.GROQ_TIMEOUT_MS || 20_000);
+
+// Groq's free tier caps vision requests at 8000 tokens per minute. One 320px
+// frame fits; the moment the UI starts sending the previous frame as a
+// reference, the pair costs ~8.3k and every request fails with 413. When that
+// happens we fall back to single-frame analysis for the rest of the run.
+// Set SEND_REFERENCE_IMAGE=false to start in that mode deliberately.
+let referenceImagesDisabled = /^(0|false|no|off)$/i.test(
+String(process.env.SEND_REFERENCE_IMAGE ?? "").trim(),
+);
+function isTokenBudgetError(error) {
+const message = String(
+error?.error?.error?.message || error?.error?.message || error?.message || "",
+);
+return (
+Number(error?.status) === 413 ||
+/request too large|tokens per minute|reduce your message size/i.test(message)
+);
+}
 app.use(express.json({ limit: "6mb" }));
 // No caching on static assets — this is a locally-run dev tool, and stale
 // cached JS after an update is far more confusing than a slightly slower
@@ -732,7 +750,9 @@ cameraName: clean(jobContext.cameraName, 100),
 material: clean(jobContext.material, 80),
 operator: clean(jobContext.operator, 80),
 };
-const prompt = `
+// Rebuilt per attempt: if the reference image has to be dropped to fit the
+// token budget, the prompt must stop claiming one was sent.
+const buildPrompt = (referenceType) => `
 You are Vision OPS, a conservative fabrication-machine visual inspector.
 Use only visible evidence. Never invent motion, sound, heat, smoke, or events.
 When the evidence sits between two classifications, prefer the one that flags a possible
@@ -742,7 +762,7 @@ must not be reported as "none" or "normal". Only act on what is actually visible
 invent a problem in a genuinely clean frame.
 Machine type: ${machineType}
 Context: ${JSON.stringify(safeJobContext)}
-Reference image type: ${reference?.type || "none"}
+Reference image type: ${referenceType}
 ${machineInstructions(machineType)}
 If a PREVIOUS CAMERA FRAME is included, compare it with the CURRENT CAMERA FRAME
 and set temporal_change_detected only when a meaningful visible change exists.
@@ -796,19 +816,52 @@ Return JSON only:
 "next_step": "short action"
 }
 `;
-const content = [{ type: "text", text: prompt }];
-for (const item of images) {
+const buildContent = (items) => {
+const content = [{ type: "text", text: buildPrompt(items.length > 1 ? reference.type : "none") }];
+for (const item of items) {
 content.push({ type: "text", text: item.label });
 content.push({
 type: "image_url",
 image_url: { url: item.image },
 });
 }
+return content;
+};
+// The current frame is always the last entry; dropping everything before it
+// leaves a valid single-image request.
+const currentOnly = images.slice(-1);
+const attemptImages = referenceImagesDisabled ? currentOnly : images;
 console.log(
-`Analyzing with ${model}; images=${images.length}; machine=${machineType}`,
+`Analyzing with ${model}; images=${attemptImages.length}; machine=${machineType}`,
 );
 const startedAt = Date.now();
-const { rawResult, attempts } = await requestAnalysis(content);
+let rawResult;
+let attempts;
+try {
+({ rawResult, attempts } = await requestAnalysis(buildContent(attemptImages)));
+} catch (error) {
+// Two 320px frames cost roughly 8.3k tokens, which does not fit the free
+// tier's 8000 tokens/minute. Rather than fail every frame from here on,
+// drop the reference image and keep monitoring with the current frame
+// alone — worse temporal comparison, but the machine stays watched.
+if (!isTokenBudgetError(error) || attemptImages.length < 2) throw error;
+const wasDisabled = referenceImagesDisabled;
+referenceImagesDisabled = true;
+console.warn(
+"Groq rejected the two-image request as too large for the token limit; " +
+"continuing with the current frame only.",
+);
+if (!wasDisabled) {
+notifyInfo({
+title: "ℹ️ Vision OPS switched to single-frame analysis",
+message:
+"Two camera frames exceed this Groq tier's tokens-per-minute limit, so the reference " +
+"frame is no longer sent. Monitoring continues; frame-to-frame change detection is off. " +
+"Lower the camera resolution or upgrade the Groq tier to restore it.",
+});
+}
+({ rawResult, attempts } = await requestAnalysis(buildContent(currentOnly)));
+}
 const latencyMs = Date.now() - startedAt;
 console.log(`Groq responded in ${latencyMs}ms (attempts=${attempts}).`);
 const normalized = normalizeResult(rawResult, { machineType });
@@ -926,7 +979,11 @@ await flushNotifications();
 process.exit(1);
 });
 
-const server = app.listen(port, () => {
+// Express 5 runs an app.listen(port, callback) callback even when the bind
+// fails, which would print "Vision OPS is running" over a failed start. The
+// "listening" event only fires on a real bind, so the banner hangs off that.
+const server = app.listen(port);
+server.on("listening", () => {
 const notifications = describeNotifications();
 console.log(`Vision OPS is running at http://localhost:${port}`);
 console.log(`Groq vision model: ${model}`);
@@ -951,6 +1008,30 @@ console.warn(
 console.log("Discord alerts disabled — set DISCORD_WEBHOOK_URL in .env to enable them.");
 }
 });
+// A failure to bind is a startup problem, not a monitoring outage, so it must
+// not fire the "the machine is unwatched" crash alert — the usual cause is a
+// second `npm start` while the first one is still running and watching fine.
+server.on("error", async (error) => {
+if (error?.code === "EADDRINUSE") {
+console.error(
+`\nPort ${port} is already in use — Vision OPS is probably already running.\n` +
+`Open http://localhost:${port} in your browser, or close the other terminal\n` +
+`window first. To run a second copy on another port: PORT=${port + 1} npm start\n`,
+);
+process.exit(1);
+}
+console.error("Vision OPS could not start:", error);
+await notifyError({
+scope: "startup",
+message: `Vision OPS could not start on port ${port}, so nothing is being monitored.`,
+details: String(error?.stack || error?.message || error),
+key: "server:listen_error",
+fatal: true,
+});
+await flushNotifications();
+process.exit(1);
+});
+
 wss = new WebSocketServer({ server });
 wss.on("connection", (socket) => {
 socket.send(JSON.stringify({ type: "hello", message: "Connected to Vision OPS live updates." }));

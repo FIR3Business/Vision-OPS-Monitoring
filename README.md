@@ -124,6 +124,35 @@ A rejected webhook comes back with the reason Discord gave.
 See `.env.example` for every setting, including snapshot attachments, cooldowns,
 and the bot's display name.
 
+----------------------------------------------------------------
+## Troubleshooting
+
+### "The image request is too large" after the first analysis
+
+Vision OPS normally sends two images per analysis: the current frame and the
+previous one, so the model can tell what changed. On Groq's free tier that pair
+costs roughly 8300 tokens against a limit of 8000 tokens per minute, so the
+first analysis succeeds and every one after it fails.
+
+The server now handles this on its own — it drops the reference frame, retries,
+and stays in single-frame mode for the rest of the run, posting one Discord
+notice when it switches. Monitoring keeps working; only frame-to-frame change
+detection is lost.
+
+To avoid the one failed request entirely, set `SEND_REFERENCE_IMAGE=false` in
+`.env`. To get the reference frame back, lower the camera resolution or upgrade
+the Groq tier at [console.groq.com/settings/billing](https://console.groq.com/settings/billing).
+
+### "Port 3001 is already in use"
+
+Vision OPS is already running in another terminal window or browser tab session.
+Open <http://localhost:3001> instead of starting it again, or close the other
+window first. To run a second copy alongside it, give it another port:
+
+```
+PORT=3002 npm start
+```
+
 ### A note on .env
 
 `.env` is no longer tracked by git, because it holds your Groq API key and your
